@@ -16,7 +16,7 @@
             <!-- 左側標題 -->
             <div class="flex items-center">
                 <i class="fa-solid fa-satellite-dish text-purple-500 mr-2 text-xl"></i>
-                <h1 class="text-lg md:text-xl font-bold text-white hidden md:block">IoT Smart Center</h1>
+                <h1 class="text-lg md:text-xl font-bold text-white hidden md:block" data-i18n="navTitle">IoT Smart Center</h1>
                 <h1 class="text-lg font-bold text-white md:hidden">IoT</h1>
             </div>
 
@@ -27,9 +27,14 @@
             </div>
 
             <!-- 右側功能區 -->
-            <div class="flex gap-2">
+            <div class="flex gap-2 items-center">
+                <!-- 語言切換按鈕 (新增) -->
+                <button onclick="toggleLanguage()" class="text-slate-300 hover:text-white px-2 py-1 font-bold text-sm border border-slate-600 rounded hover:bg-slate-700 transition mr-1">
+                    <i class="fa-solid fa-globe mr-1"></i><span id="langBtnText">EN</span>
+                </button>
+                
                 <button onclick="exportCSV()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm font-bold shadow transition" title="匯出 Excel">
-                    <i class="fa-solid fa-download mr-1"></i> 匯出
+                    <i class="fa-solid fa-download mr-1"></i> <span data-i18n="exportBtn">匯出</span>
                 </button>
                 <button onclick="toggleSetup()" class="text-slate-400 hover:text-white transition p-2">
                     <i class="fa-solid fa-gear text-lg"></i>
@@ -42,14 +47,14 @@
         
         <!-- 設定區塊 -->
         <div id="setupPanel" class="bg-slate-800 p-6 rounded-lg mb-6 border border-purple-500/50 shadow-lg hidden">
-            <h3 class="font-bold mb-4 text-purple-300">系統設定</h3>
+            <h3 class="font-bold mb-4 text-purple-300" data-i18n="setupTitle">系統設定</h3>
             <div class="grid gap-4 md:grid-cols-2">
                 <div><label class="block text-xs text-slate-400 mb-1">Channel ID</label><input type="text" id="channelId" class="w-full bg-slate-900 border border-slate-600 rounded p-2"></div>
                 <div><label class="block text-xs text-slate-400 mb-1">Read API Key</label><input type="text" id="readKey" class="w-full bg-slate-900 border border-slate-600 rounded p-2"></div>
                 <div><label class="block text-xs text-slate-400 mb-1">TalkBack ID</label><input type="text" id="tbId" class="w-full bg-slate-900 border border-slate-600 rounded p-2"></div>
                 <div><label class="block text-xs text-slate-400 mb-1">TalkBack API Key</label><input type="text" id="tbKey" class="w-full bg-slate-900 border border-slate-600 rounded p-2"></div>
             </div>
-            <button onclick="saveSettings()" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded font-bold w-full transition">儲存設定</button>
+            <button onclick="saveSettings()" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded font-bold w-full transition" data-i18n="saveBtn">儲存設定</button>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -57,8 +62,8 @@
             <!-- 左側：即時數據與警報 -->
             <div class="lg:col-span-2 bg-slate-800 p-6 rounded-lg border border-slate-700 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-slate-400 text-sm uppercase font-bold">即時監控 (異常自動變色)</h3>
-                    <span class="text-xs text-slate-500">更新: <span id="lastUpdate" class="text-white">--</span></span>
+                    <h3 class="text-slate-400 text-sm uppercase font-bold" data-i18n="monitorTitle">即時監控 (異常自動變色)</h3>
+                    <span class="text-xs text-slate-500"><span data-i18n="updated">更新:</span> <span id="lastUpdate" class="text-white">--</span></span>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -66,7 +71,7 @@
                     <div id="cardTemp" class="bg-slate-700/50 p-4 rounded-lg text-center transition-all duration-500 border border-transparent">
                         <i class="fa-solid fa-temperature-three-quarters text-2xl text-red-400 mb-2"></i>
                         <div class="text-4xl font-bold text-white mb-1" id="tempVal">--</div>
-                        <div class="text-xs text-slate-400">溫度 °C</div>
+                        <div class="text-xs text-slate-400"><span data-i18n="temp">溫度</span> °C</div>
                         <div class="mt-2 text-xs text-slate-500 bg-slate-900/50 rounded py-1">
                             Max: <span id="tempMax" class="text-slate-300">--</span> / Min: <span id="tempMin" class="text-slate-300">--</span>
                         </div>
@@ -75,7 +80,7 @@
                     <div id="cardHum" class="bg-slate-700/50 p-4 rounded-lg text-center transition-all duration-500 border border-transparent">
                         <i class="fa-solid fa-droplet text-2xl text-cyan-400 mb-2"></i>
                         <div class="text-4xl font-bold text-white mb-1" id="humVal">--</div>
-                        <div class="text-xs text-slate-400">濕度 %</div>
+                        <div class="text-xs text-slate-400"><span data-i18n="hum">濕度</span> %</div>
                         <div class="mt-2 text-xs text-slate-500 bg-slate-900/50 rounded py-1">
                             Max: <span id="humMax" class="text-slate-300">--</span> / Min: <span id="humMin" class="text-slate-300">--</span>
                         </div>
@@ -84,9 +89,9 @@
                     <div id="cardSoil" class="bg-slate-700/50 p-4 rounded-lg text-center transition-all duration-500 border border-transparent">
                         <i class="fa-solid fa-seedling text-2xl text-green-400 mb-2"></i>
                         <div class="text-4xl font-bold text-white mb-1" id="soilVal">--</div>
-                        <div class="text-xs text-slate-400">土壤 %</div>
+                        <div class="text-xs text-slate-400"><span data-i18n="soil">土壤</span> %</div>
                         <div class="mt-2 text-xs text-slate-500 bg-slate-900/50 rounded py-1">
-                            狀態: <span id="soilStatus" class="text-slate-300">--</span>
+                            <span data-i18n="status">狀態</span>: <span id="soilStatus" class="text-slate-300">--</span>
                         </div>
                     </div>
                 </div>
@@ -94,7 +99,7 @@
 
             <!-- 右側：控制區 -->
             <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 flex flex-col">
-                <h3 class="text-slate-400 text-sm uppercase font-bold mb-6">遠端控制中心</h3>
+                <h3 class="text-slate-400 text-sm uppercase font-bold mb-6" data-i18n="controlTitle">遠端控制中心</h3>
                 
                 <div class="space-y-4 flex-grow">
                     <!-- LED 1 -->
@@ -102,7 +107,7 @@
                         <div class="flex items-center gap-3">
                             <div id="led1Ind" class="w-3 h-3 rounded-full bg-slate-600 transition-colors duration-500 shadow-lg"></div>
                             <div>
-                                <div class="text-sm font-bold text-blue-200">主燈 (LED 1)</div>
+                                <div class="text-sm font-bold text-blue-200" data-i18n="led1">主燈 (LED 1)</div>
                                 <div class="text-[10px] text-slate-500">GPIO 2</div>
                             </div>
                         </div>
@@ -117,7 +122,7 @@
                         <div class="flex items-center gap-3">
                             <div id="led2Ind" class="w-3 h-3 rounded-full bg-slate-600 transition-colors duration-500 shadow-lg"></div>
                             <div>
-                                <div class="text-sm font-bold text-yellow-200">幫浦/燈 (LED 2)</div>
+                                <div class="text-sm font-bold text-yellow-200" data-i18n="led2">幫浦/燈 (LED 2)</div>
                                 <div class="text-[10px] text-slate-500">GPIO 5</div>
                             </div>
                         </div>
@@ -127,13 +132,13 @@
                         </div>
                     </div>
                 </div>
-                <div id="cmdStatus" class="text-xs text-center text-slate-500 mt-4 h-4 font-mono">系統待命</div>
+                <div id="cmdStatus" class="text-xs text-center text-slate-500 mt-4 h-4 font-mono" data-i18n="waiting">系統待命</div>
             </div>
         </div>
 
         <!-- 圖表區 -->
         <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 h-80 md:h-96 relative">
-            <h3 class="text-slate-400 text-sm uppercase font-bold mb-2">趨勢分析 (20筆)</h3>
+            <h3 class="text-slate-400 text-sm uppercase font-bold mb-2" data-i18n="chartTitle">趨勢分析 (20筆)</h3>
             <div class="w-full h-full pb-6">
                 <canvas id="historyChart"></canvas>
             </div>
@@ -145,11 +150,108 @@
         let intervalId;
         let myChart;
         let currentFeeds = []; // 儲存目前的數據供匯出使用
+        let curLang = 'zh'; // 預設語言
+
+        // --- 語言字典 ---
+        const i18n = {
+            zh: {
+                navTitle: "IoT 智慧監控中心",
+                exportBtn: "匯出",
+                setupTitle: "系統設定",
+                saveBtn: "儲存設定",
+                monitorTitle: "即時監控 (異常自動變色)",
+                updated: "更新:",
+                temp: "溫度",
+                hum: "濕度",
+                soil: "土壤",
+                status: "狀態",
+                controlTitle: "遠端控制中心",
+                led1: "主燈 (LED 1)",
+                led2: "幫浦/燈 (LED 2)",
+                waiting: "系統待命",
+                chartTitle: "趨勢分析 (20筆)",
+                statusDry: "缺水",
+                statusWet: "過濕",
+                statusOk: "適中",
+                cmdSending: "發送指令中...",
+                cmdSent: "已發送，等待執行...",
+                cmdFail: "發送失敗",
+                exportError: "目前沒有數據可匯出",
+                alertFill: "請填寫必要欄位"
+            },
+            en: {
+                navTitle: "IoT Smart Center",
+                exportBtn: "Export",
+                setupTitle: "System Setup",
+                saveBtn: "Save Settings",
+                monitorTitle: "Live Monitor (Auto Alert)",
+                updated: "Updated:",
+                temp: "Temp",
+                hum: "Humidity",
+                soil: "Soil",
+                status: "Status",
+                controlTitle: "Remote Control",
+                led1: "Main Light (LED 1)",
+                led2: "Pump/Light (LED 2)",
+                waiting: "System Ready",
+                chartTitle: "Trend Analysis (20 pts)",
+                statusDry: "Dry",
+                statusWet: "Wet",
+                statusOk: "Good",
+                cmdSending: "Sending...",
+                cmdSent: "Sent, waiting...",
+                cmdFail: "Failed",
+                exportError: "No data to export",
+                alertFill: "Please fill in required fields"
+            }
+        };
 
         // --- 時鐘 ---
         setInterval(() => {
             document.getElementById('digitalClock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false });
         }, 1000);
+
+        // --- 語言切換邏輯 ---
+        function toggleLanguage() {
+            curLang = curLang === 'zh' ? 'en' : 'zh';
+            document.getElementById('langBtnText').innerText = curLang === 'zh' ? 'EN' : '中';
+            updateInterfaceText();
+        }
+
+        function updateInterfaceText() {
+            // 更新所有有 data-i18n 屬性的元素
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[curLang][key]) {
+                    el.innerText = i18n[curLang][key];
+                }
+            });
+
+            // 更新圖表標籤
+            myChart.data.datasets[0].label = i18n[curLang].temp;
+            myChart.data.datasets[1].label = i18n[curLang].hum;
+            myChart.data.datasets[2].label = i18n[curLang].soil;
+            myChart.update();
+
+            // 如果有目前的數據，也更新土壤狀態文字
+            if(currentFeeds.length > 0) {
+                const last = currentFeeds[currentFeeds.length-1];
+                const s = parseFloat(last.field3);
+                updateSoilStatusText(s);
+            }
+            
+            // 更新狀態列 (如果還是預設值)
+            const cmdStatus = document.getElementById('cmdStatus');
+            if(cmdStatus.innerText === i18n['zh'].waiting || cmdStatus.innerText === i18n['en'].waiting) {
+                cmdStatus.innerText = i18n[curLang].waiting;
+            }
+        }
+
+        function updateSoilStatusText(s) {
+            const el = document.getElementById('soilStatus');
+            if(isNaN(s)) return;
+            el.innerText = s < 20 ? i18n[curLang].statusDry : (s > 80 ? i18n[curLang].statusWet : i18n[curLang].statusOk);
+        }
 
         // --- 初始化圖表 ---
         const ctx = document.getElementById('historyChart').getContext('2d');
@@ -181,7 +283,7 @@
         function saveSettings() {
             const ids = ['channelId', 'readKey', 'tbId', 'tbKey'];
             const vals = ids.map(id => document.getElementById(id).value);
-            if(!vals[0] || !vals[2] || !vals[3]) return alert("請填寫必要欄位");
+            if(!vals[0] || !vals[2] || !vals[3]) return alert(i18n[curLang].alertFill);
             
             ids.forEach((id, i) => localStorage.setItem('conf_'+id, vals[i]));
             document.getElementById('setupPanel').classList.add('hidden');
@@ -194,9 +296,9 @@
             const statusDiv = document.getElementById('cmdStatus');
             const ind = document.getElementById('led'+ledNum+'Ind');
 
-            if(!tbid || !tbk) return alert("請先設定 TalkBack");
+            if(!tbid || !tbk) return alert(i18n[curLang].alertFill);
 
-            statusDiv.innerText = "發送指令中...";
+            statusDiv.innerText = i18n[curLang].cmdSending;
             statusDiv.className = "text-xs text-center text-yellow-500 mt-4 h-4 font-mono";
 
             const formData = new FormData();
@@ -206,13 +308,16 @@
             try {
                 const res = await fetch(`https://api.thingspeak.com/talkbacks/${tbid}/commands`, { method: 'POST', body: formData });
                 if(res.ok) {
-                    statusDiv.innerText = `[${cmd}] 已發送，等待執行...`;
+                    statusDiv.innerText = `[${cmd}] ${i18n[curLang].cmdSent}`;
                     statusDiv.className = "text-xs text-center text-green-500 mt-4 h-4 font-mono";
                     ind.className = cmd.includes('_ON') 
                         ? (ledNum==1 ? "w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]" : "w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_10px_#eab308]")
                         : "w-3 h-3 rounded-full bg-slate-600 shadow-none";
                 }
-            } catch (e) { statusDiv.innerText = "發送失敗"; statusDiv.className = "text-xs text-center text-red-500 mt-4 h-4 font-mono"; }
+            } catch (e) { 
+                statusDiv.innerText = i18n[curLang].cmdFail; 
+                statusDiv.className = "text-xs text-center text-red-500 mt-4 h-4 font-mono"; 
+            }
         }
 
         // --- 核心邏輯：讀取、統計、警報 ---
@@ -247,8 +352,8 @@
                     calculateStats(feeds, 'field1', 'temp');
                     calculateStats(feeds, 'field2', 'hum');
                     
-                    // 土壤狀態文字
-                    document.getElementById('soilStatus').innerText = s < 20 ? "缺水" : (s > 80 ? "過濕" : "適中");
+                    // 土壤狀態文字 (使用翻譯函式)
+                    updateSoilStatusText(s);
                     document.getElementById('soilStatus').className = s < 20 ? "text-red-400 font-bold" : "text-slate-300";
 
                     // 3. 更新圖表
@@ -290,7 +395,7 @@
 
         // --- 匯出 CSV ---
         function exportCSV() {
-            if(currentFeeds.length === 0) return alert("目前沒有數據可匯出");
+            if(currentFeeds.length === 0) return alert(i18n[curLang].exportError);
             
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += "Time,Temperature,Humidity,Soil Moisture\n"; // Header
