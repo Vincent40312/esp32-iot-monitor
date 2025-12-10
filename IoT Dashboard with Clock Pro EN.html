@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 智慧監控中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 引入 Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-200 font-sans min-h-screen">
+
+    <nav class="bg-slate-800 p-4 border-b border-slate-700 sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <!-- 左側標題 -->
+            <div class="flex items-center">
+                <i class="fa-solid fa-satellite-dish text-purple-500 mr-2 text-xl"></i>
+                <h1 class="text-lg md:text-xl font-bold text-white hidden md:block" data-i18n="navTitle">IoT Smart Center</h1>
+                <h1 class="text-lg font-bold text-white md:hidden">IoT</h1>
+            </div>
+
+            <!-- 中間時鐘 -->
+            <div class="flex items-center gap-2 bg-slate-900 px-4 py-1 rounded-full border border-slate-700 shadow-inner">
+                <i class="fa-regular fa-clock text-slate-400 text-sm"></i>
+                <span id="digitalClock" class="font-mono text-green-400 font-bold tracking-widest">--:--:--</span>
+            </div>
+
+            <!-- 右側功能區 -->
+            <div class="flex gap-2 items-center">
+                <!-- 語言切換按鈕 (新增) -->
+                <button onclick="toggleLanguage()" class="text-slate-300 hover:text-white px-2 py-1 font-bold text-sm border border-slate-600 rounded hover:bg-slate-700 transition mr-1">
+                    <i class="fa-solid fa-globe mr-1"></i><span id="langBtnText">EN</span>
+                </button>
+                
+                <button onclick="exportCSV()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm font-bold shadow transition" title="匯出 Excel">
+                    <i class="fa-solid fa-download mr-1"></i> <span data-i18n="exportBtn">匯出</span>
+                </button>
+                <button onclick="toggleSetup()" class="text-slate-400 hover:text-white transition p-2">
+                    <i class="fa-solid fa-gear text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 max-w-6xl">
+        
+        <!-- 設定區塊 -->
+        <div id="setupPanel" class="bg-slate-800 p-6 rounded-lg mb-6 border border-purple-500/50 shadow-lg hidden">
+            <h3 class="font-bold mb-4 text-purple-300" data-i18n="setupTitle">系統設定</h3>
+            <div class="grid gap-4 md:grid-cols-2">
+                <div><label class="block text-xs text-slate-400 mb-1">Channel ID</label><input type="text" id="channelId" class="w-full bg-slate-900 border border-slate-600 rounded p-2"></div>
+                <div><label class="block text-xs text-slate-400 mb-1">Read API Key</label><input type="text" id="readKey" class="w-full bg-slate-900 border border-slate-600 rounded p-2"></div>
+                <div><label class="block text-xs text-slate-400 mb-1">TalkBack ID</label><input type="text" id="tbId" class="w-full bg-slate-900 border border-slate-600 rounded p-2"></div>
+                <div><label class="block text-xs text-slate-400 mb-1">TalkBack API Key</label><input type="text" id="tbKey" class="w-full bg-slate-900 border border-slate-600 rounded p-2"></div>
+            </div>
+            <button onclick="saveSettings()" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded font-bold w-full transition" data-i18n="saveBtn">儲存設定</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            
+            <!-- 左側：即時數據與警報 -->
+            <div class="lg:col-span-2 bg-slate-800 p-6 rounded-lg border border-slate-700 flex flex-col justify-between">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-slate-400 text-sm uppercase font-bold" data-i18n="monitorTitle">即時監控 (異常自動變色)</h3>
+                    <span class="text-xs text-slate-500"><span data-i18n="updated">更新:</span> <span id="lastUpdate" class="text-white">--</span></span>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- 溫度卡片 -->
+                    <div id="cardTemp" class="bg-slate-700/50 p-4 rounded-lg text-center transition-all duration-500 border border-transparent">
+                        <i class="fa-solid fa-temperature-three-quarters text-2xl text-red-400 mb-2"></i>
+                        <div class="text-4xl font-bold text-white mb-1" id="tempVal">--</div>
+                        <div class="text-xs text-slate-400"><span data-i18n="temp">溫度</span> °C</div>
+                        <div class="mt-2 text-xs text-slate-500 bg-slate-900/50 rounded py-1">
+                            Max: <span id="tempMax" class="text-slate-300">--</span> / Min: <span id="tempMin" class="text-slate-300">--</span>
+                        </div>
+                    </div>
+                    <!-- 濕度卡片 -->
+                    <div id="cardHum" class="bg-slate-700/50 p-4 rounded-lg text-center transition-all duration-500 border border-transparent">
+                        <i class="fa-solid fa-droplet text-2xl text-cyan-400 mb-2"></i>
+                        <div class="text-4xl font-bold text-white mb-1" id="humVal">--</div>
+                        <div class="text-xs text-slate-400"><span data-i18n="hum">濕度</span> %</div>
+                        <div class="mt-2 text-xs text-slate-500 bg-slate-900/50 rounded py-1">
+                            Max: <span id="humMax" class="text-slate-300">--</span> / Min: <span id="humMin" class="text-slate-300">--</span>
+                        </div>
+                    </div>
+                    <!-- 土壤卡片 -->
+                    <div id="cardSoil" class="bg-slate-700/50 p-4 rounded-lg text-center transition-all duration-500 border border-transparent">
+                        <i class="fa-solid fa-seedling text-2xl text-green-400 mb-2"></i>
+                        <div class="text-4xl font-bold text-white mb-1" id="soilVal">--</div>
+                        <div class="text-xs text-slate-400"><span data-i18n="soil">土壤</span> %</div>
+                        <div class="mt-2 text-xs text-slate-500 bg-slate-900/50 rounded py-1">
+                            <span data-i18n="status">狀態</span>: <span id="soilStatus" class="text-slate-300">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右側：控制區 -->
+            <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 flex flex-col">
+                <h3 class="text-slate-400 text-sm uppercase font-bold mb-6" data-i18n="controlTitle">遠端控制中心</h3>
+                
+                <div class="space-y-4 flex-grow">
+                    <!-- LED 1 -->
+                    <div class="bg-slate-900 p-4 rounded border border-slate-700 flex items-center justify-between group hover:border-blue-500 transition">
+                        <div class="flex items-center gap-3">
+                            <div id="led1Ind" class="w-3 h-3 rounded-full bg-slate-600 transition-colors duration-500 shadow-lg"></div>
+                            <div>
+                                <div class="text-sm font-bold text-blue-200" data-i18n="led1">主燈 (LED 1)</div>
+                                <div class="text-[10px] text-slate-500">GPIO 2</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="sendCommand('LED1_ON', 1)" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white w-12 py-1 rounded text-xs font-bold transition">ON</button>
+                            <button onclick="sendCommand('LED1_OFF', 1)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white w-12 py-1 rounded text-xs font-bold transition">OFF</button>
+                        </div>
+                    </div>
+
+                    <!-- LED 2 -->
+                    <div class="bg-slate-900 p-4 rounded border border-slate-700 flex items-center justify-between group hover:border-yellow-500 transition">
+                        <div class="flex items-center gap-3">
+                            <div id="led2Ind" class="w-3 h-3 rounded-full bg-slate-600 transition-colors duration-500 shadow-lg"></div>
+                            <div>
+                                <div class="text-sm font-bold text-yellow-200" data-i18n="led2">幫浦/燈 (LED 2)</div>
+                                <div class="text-[10px] text-slate-500">GPIO 5</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="sendCommand('LED2_ON', 2)" class="bg-yellow-600 hover:bg-yellow-500 active:scale-95 text-white w-12 py-1 rounded text-xs font-bold transition">ON</button>
+                            <button onclick="sendCommand('LED2_OFF', 2)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white w-12 py-1 rounded text-xs font-bold transition">OFF</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="cmdStatus" class="text-xs text-center text-slate-500 mt-4 h-4 font-mono" data-i18n="waiting">系統待命</div>
+            </div>
+        </div>
+
+        <!-- 圖表區 -->
+        <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 h-80 md:h-96 relative">
+            <h3 class="text-slate-400 text-sm uppercase font-bold mb-2" data-i18n="chartTitle">趨勢分析 (20筆)</h3>
+            <div class="w-full h-full pb-6">
+                <canvas id="historyChart"></canvas>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let intervalId;
+        let myChart;
+        let currentFeeds = []; // 儲存目前的數據供匯出使用
+        let curLang = 'zh'; // 預設語言
+
+        // --- 語言字典 ---
+        const i18n = {
+            zh: {
+                navTitle: "IoT 智慧監控中心",
+                exportBtn: "匯出",
+                setupTitle: "系統設定",
+                saveBtn: "儲存設定",
+                monitorTitle: "即時監控 (異常自動變色)",
+                updated: "更新:",
+                temp: "溫度",
+                hum: "濕度",
+                soil: "土壤",
+                status: "狀態",
+                controlTitle: "遠端控制中心",
+                led1: "主燈 (LED 1)",
+                led2: "幫浦/燈 (LED 2)",
+                waiting: "系統待命",
+                chartTitle: "趨勢分析 (20筆)",
+                statusDry: "缺水",
+                statusWet: "過濕",
+                statusOk: "適中",
+                cmdSending: "發送指令中...",
+                cmdSent: "已發送，等待執行...",
+                cmdFail: "發送失敗",
+                exportError: "目前沒有數據可匯出",
+                alertFill: "請填寫必要欄位"
+            },
+            en: {
+                navTitle: "IoT Smart Center",
+                exportBtn: "Export",
+                setupTitle: "System Setup",
+                saveBtn: "Save Settings",
+                monitorTitle: "Live Monitor (Auto Alert)",
+                updated: "Updated:",
+                temp: "Temp",
+                hum: "Humidity",
+                soil: "Soil",
+                status: "Status",
+                controlTitle: "Remote Control",
+                led1: "Main Light (LED 1)",
+                led2: "Pump/Light (LED 2)",
+                waiting: "System Ready",
+                chartTitle: "Trend Analysis (20 pts)",
+                statusDry: "Dry",
+                statusWet: "Wet",
+                statusOk: "Good",
+                cmdSending: "Sending...",
+                cmdSent: "Sent, waiting...",
+                cmdFail: "Failed",
+                exportError: "No data to export",
+                alertFill: "Please fill in required fields"
+            }
+        };
+
+        // --- 時鐘 ---
+        setInterval(() => {
+            document.getElementById('digitalClock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false });
+        }, 1000);
+
+        // --- 語言切換邏輯 ---
+        function toggleLanguage() {
+            curLang = curLang === 'zh' ? 'en' : 'zh';
+            document.getElementById('langBtnText').innerText = curLang === 'zh' ? 'EN' : '中';
+            updateInterfaceText();
+        }
+
+        function updateInterfaceText() {
+            // 更新所有有 data-i18n 屬性的元素
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[curLang][key]) {
+                    el.innerText = i18n[curLang][key];
+                }
+            });
+
+            // 更新圖表標籤
+            myChart.data.datasets[0].label = i18n[curLang].temp;
+            myChart.data.datasets[1].label = i18n[curLang].hum;
+            myChart.data.datasets[2].label = i18n[curLang].soil;
+            myChart.update();
+
+            // 如果有目前的數據，也更新土壤狀態文字
+            if(currentFeeds.length > 0) {
+                const last = currentFeeds[currentFeeds.length-1];
+                const s = parseFloat(last.field3);
+                updateSoilStatusText(s);
+            }
+            
+            // 更新狀態列 (如果還是預設值)
+            const cmdStatus = document.getElementById('cmdStatus');
+            if(cmdStatus.innerText === i18n['zh'].waiting || cmdStatus.innerText === i18n['en'].waiting) {
+                cmdStatus.innerText = i18n[curLang].waiting;
+            }
+        }
+
+        function updateSoilStatusText(s) {
+            const el = document.getElementById('soilStatus');
+            if(isNaN(s)) return;
+            el.innerText = s < 20 ? i18n[curLang].statusDry : (s > 80 ? i18n[curLang].statusWet : i18n[curLang].statusOk);
+        }
+
+        // --- 初始化圖表 ---
+        const ctx = document.getElementById('historyChart').getContext('2d');
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: '溫度', borderColor: '#f87171', backgroundColor: 'rgba(248,113,113,0.1)', tension: 0.4, fill: true, yAxisID: 'y' },
+                    { label: '濕度', borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.1)', tension: 0.4, fill: true, yAxisID: 'y1' },
+                    { label: '土壤', borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.1)', tension: 0.4, fill: true, yAxisID: 'y1' }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { labels: { color: '#94a3b8' } } },
+                scales: {
+                    x: { ticks: { color: '#64748b' }, grid: { display: false } },
+                    y: { type: 'linear', display: true, position: 'left', ticks: { color: '#f87171' }, grid: { color: '#334155' } },
+                    y1: { type: 'linear', display: true, position: 'right', ticks: { color: '#e2e8f0' }, grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+
+        function toggleSetup() { document.getElementById('setupPanel').classList.toggle('hidden'); }
+
+        function saveSettings() {
+            const ids = ['channelId', 'readKey', 'tbId', 'tbKey'];
+            const vals = ids.map(id => document.getElementById(id).value);
+            if(!vals[0] || !vals[2] || !vals[3]) return alert(i18n[curLang].alertFill);
+            
+            ids.forEach((id, i) => localStorage.setItem('conf_'+id, vals[i]));
+            document.getElementById('setupPanel').classList.add('hidden');
+            startLoop();
+        }
+
+        async function sendCommand(cmd, ledNum) {
+            const tbid = localStorage.getItem('conf_tbId');
+            const tbk = localStorage.getItem('conf_tbKey');
+            const statusDiv = document.getElementById('cmdStatus');
+            const ind = document.getElementById('led'+ledNum+'Ind');
+
+            if(!tbid || !tbk) return alert(i18n[curLang].alertFill);
+
+            statusDiv.innerText = i18n[curLang].cmdSending;
+            statusDiv.className = "text-xs text-center text-yellow-500 mt-4 h-4 font-mono";
+
+            const formData = new FormData();
+            formData.append('api_key', tbk);
+            formData.append('command_string', cmd);
+
+            try {
+                const res = await fetch(`https://api.thingspeak.com/talkbacks/${tbid}/commands`, { method: 'POST', body: formData });
+                if(res.ok) {
+                    statusDiv.innerText = `[${cmd}] ${i18n[curLang].cmdSent}`;
+                    statusDiv.className = "text-xs text-center text-green-500 mt-4 h-4 font-mono";
+                    ind.className = cmd.includes('_ON') 
+                        ? (ledNum==1 ? "w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]" : "w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_10px_#eab308]")
+                        : "w-3 h-3 rounded-full bg-slate-600 shadow-none";
+                }
+            } catch (e) { 
+                statusDiv.innerText = i18n[curLang].cmdFail; 
+                statusDiv.className = "text-xs text-center text-red-500 mt-4 h-4 font-mono"; 
+            }
+        }
+
+        // --- 核心邏輯：讀取、統計、警報 ---
+        async function fetchSensorData() {
+            const cid = localStorage.getItem('conf_channelId');
+            const rkey = localStorage.getItem('conf_readKey');
+            if(!cid) return;
+
+            try {
+                let url = `https://api.thingspeak.com/channels/${cid}/feeds.json?results=20`;
+                if(rkey) url += `&api_key=${rkey}`;
+
+                const res = await fetch(url);
+                const data = await res.json();
+                const feeds = data.feeds;
+                currentFeeds = feeds; // 存起來給匯出用
+
+                if(feeds.length > 0) {
+                    // 1. 更新最新數值
+                    const last = feeds[feeds.length-1];
+                    const t = parseFloat(last.field1);
+                    const h = parseFloat(last.field2);
+                    const s = parseFloat(last.field3);
+
+                    updateCard('temp', t, 30, 'high'); // 溫度 > 30 變紅
+                    updateCard('hum', h, 40, 'low');   // 濕度 < 40 變紅
+                    updateCard('soil', s, 20, 'low');  // 土壤 < 20 變紅
+                    
+                    document.getElementById('lastUpdate').innerText = new Date(last.created_at).toLocaleTimeString();
+
+                    // 2. 計算統計數據 (Min/Max)
+                    calculateStats(feeds, 'field1', 'temp');
+                    calculateStats(feeds, 'field2', 'hum');
+                    
+                    // 土壤狀態文字 (使用翻譯函式)
+                    updateSoilStatusText(s);
+                    document.getElementById('soilStatus').className = s < 20 ? "text-red-400 font-bold" : "text-slate-300";
+
+                    // 3. 更新圖表
+                    myChart.data.labels = feeds.map(f => new Date(f.created_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}));
+                    myChart.data.datasets[0].data = feeds.map(f => f.field1);
+                    myChart.data.datasets[1].data = feeds.map(f => f.field2);
+                    myChart.data.datasets[2].data = feeds.map(f => f.field3);
+                    myChart.update();
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // 輔助：更新卡片顏色與數值
+        function updateCard(type, val, threshold, mode) {
+            const elVal = document.getElementById(type+'Val');
+            const elCard = document.getElementById('card'+type.charAt(0).toUpperCase() + type.slice(1));
+            
+            elVal.innerText = isNaN(val) ? "--" : val.toFixed(1);
+            
+            let isAlert = false;
+            if(mode === 'high' && val > threshold) isAlert = true;
+            if(mode === 'low' && val < threshold) isAlert = true;
+
+            if(isAlert) {
+                elCard.className = "bg-red-900/40 p-4 rounded-lg text-center transition-all duration-500 border border-red-500 animate-pulse";
+            } else {
+                elCard.className = "bg-slate-700/50 p-4 rounded-lg text-center transition-all duration-500 border border-transparent";
+            }
+        }
+
+        // 輔助：計算統計
+        function calculateStats(feeds, field, id) {
+            const values = feeds.map(f => parseFloat(f[field])).filter(v => !isNaN(v));
+            if(values.length > 0) {
+                document.getElementById(id+'Max').innerText = Math.max(...values).toFixed(1);
+                document.getElementById(id+'Min').innerText = Math.min(...values).toFixed(1);
+            }
+        }
+
+        // --- 匯出 CSV ---
+        function exportCSV() {
+            if(currentFeeds.length === 0) return alert(i18n[curLang].exportError);
+            
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Time,Temperature,Humidity,Soil Moisture\n"; // Header
+
+            currentFeeds.forEach(row => {
+                const t = new Date(row.created_at).toLocaleString();
+                csvContent += `${t},${row.field1},${row.field2},${row.field3}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "iot_data_export.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function startLoop() {
+            fetchSensorData();
+            if(intervalId) clearInterval(intervalId);
+            intervalId = setInterval(fetchSensorData, 15000);
+        }
+
+        window.onload = () => {
+            const ids = ['channelId', 'readKey', 'tbId', 'tbKey'];
+            ids.forEach(id => {
+                const val = localStorage.getItem('conf_'+id);
+                if(val) document.getElementById(id).value = val;
+            });
+            
+            if(localStorage.getItem('conf_channelId')) {
+                startLoop();
+            } else {
+                document.getElementById('setupPanel').classList.remove('hidden');
+            }
+        };
+    </script>
+</body>
+</html>
