@@ -28,7 +28,7 @@
 
             <!-- 右側功能區 -->
             <div class="flex gap-2 items-center">
-                <!-- 語言切換按鈕 (新增) -->
+                <!-- 語言切換按鈕 -->
                 <button onclick="toggleLanguage()" class="text-slate-300 hover:text-white px-2 py-1 font-bold text-sm border border-slate-600 rounded hover:bg-slate-700 transition mr-1">
                     <i class="fa-solid fa-globe mr-1"></i><span id="langBtnText">EN</span>
                 </button>
@@ -102,12 +102,12 @@
                 <h3 class="text-slate-400 text-sm uppercase font-bold mb-6" data-i18n="controlTitle">遠端控制中心</h3>
                 
                 <div class="space-y-4 flex-grow">
-                    <!-- LED 1 -->
+                    <!-- 水泵 (原 LED 1) -->
                     <div class="bg-slate-900 p-4 rounded border border-slate-700 flex items-center justify-between group hover:border-blue-500 transition">
                         <div class="flex items-center gap-3">
                             <div id="led1Ind" class="w-3 h-3 rounded-full bg-slate-600 transition-colors duration-500 shadow-lg"></div>
                             <div>
-                                <div class="text-sm font-bold text-blue-200" data-i18n="led1">主燈 (LED 1)</div>
+                                <div class="text-sm font-bold text-blue-200" data-i18n="led1">水泵 (LED 1)</div>
                                 <div class="text-[10px] text-slate-500">GPIO 2</div>
                             </div>
                         </div>
@@ -117,12 +117,12 @@
                         </div>
                     </div>
 
-                    <!-- LED 2 -->
+                    <!-- 施肥 (原 LED 2) -->
                     <div class="bg-slate-900 p-4 rounded border border-slate-700 flex items-center justify-between group hover:border-yellow-500 transition">
                         <div class="flex items-center gap-3">
                             <div id="led2Ind" class="w-3 h-3 rounded-full bg-slate-600 transition-colors duration-500 shadow-lg"></div>
                             <div>
-                                <div class="text-sm font-bold text-yellow-200" data-i18n="led2">幫浦/燈 (LED 2)</div>
+                                <div class="text-sm font-bold text-yellow-200" data-i18n="led2">施肥 (LED 2)</div>
                                 <div class="text-[10px] text-slate-500">GPIO 5</div>
                             </div>
                         </div>
@@ -149,8 +149,9 @@
     <script>
         let intervalId;
         let myChart;
-        let currentFeeds = []; // 儲存目前的數據供匯出使用
-        let curLang = 'zh'; // 預設語言
+        let currentFeeds = []; 
+        let curLang = 'zh'; 
+        let statusTimeout; // 新增：用於儲存倒數計時器
 
         // --- 語言字典 ---
         const i18n = {
@@ -166,8 +167,8 @@
                 soil: "土壤",
                 status: "狀態",
                 controlTitle: "遠端控制中心",
-                led1: "主燈 (LED 1)",
-                led2: "幫浦/燈 (LED 2)",
+                led1: "水泵 (LED 1)",
+                led2: "施肥 (LED 2)",
                 waiting: "系統待命",
                 chartTitle: "趨勢分析 (20筆)",
                 statusDry: "缺水",
@@ -191,8 +192,8 @@
                 soil: "Soil",
                 status: "Status",
                 controlTitle: "Remote Control",
-                led1: "Main Light (LED 1)",
-                led2: "Pump/Light (LED 2)",
+                led1: "Water Pump (LED 1)",
+                led2: "Fertilizer (LED 2)",
                 waiting: "System Ready",
                 chartTitle: "Trend Analysis (20 pts)",
                 statusDry: "Dry",
@@ -219,7 +220,6 @@
         }
 
         function updateInterfaceText() {
-            // 更新所有有 data-i18n 屬性的元素
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
                 if (i18n[curLang][key]) {
@@ -227,22 +227,20 @@
                 }
             });
 
-            // 更新圖表標籤
             myChart.data.datasets[0].label = i18n[curLang].temp;
             myChart.data.datasets[1].label = i18n[curLang].hum;
             myChart.data.datasets[2].label = i18n[curLang].soil;
             myChart.update();
 
-            // 如果有目前的數據，也更新土壤狀態文字
             if(currentFeeds.length > 0) {
                 const last = currentFeeds[currentFeeds.length-1];
                 const s = parseFloat(last.field3);
                 updateSoilStatusText(s);
             }
             
-            // 更新狀態列 (如果還是預設值)
+            // 檢查狀態列是否是待命狀態，如果是，更新語言
             const cmdStatus = document.getElementById('cmdStatus');
-            if(cmdStatus.innerText === i18n['zh'].waiting || cmdStatus.innerText === i18n['en'].waiting) {
+            if(cmdStatus.classList.contains('text-slate-500')) { 
                 cmdStatus.innerText = i18n[curLang].waiting;
             }
         }
@@ -298,6 +296,9 @@
 
             if(!tbid || !tbk) return alert(i18n[curLang].alertFill);
 
+            // 清除之前的計時器（如果有的話），避免連續點擊造成衝突
+            if(statusTimeout) clearTimeout(statusTimeout);
+
             statusDiv.innerText = i18n[curLang].cmdSending;
             statusDiv.className = "text-xs text-center text-yellow-500 mt-4 h-4 font-mono";
 
@@ -313,14 +314,26 @@
                     ind.className = cmd.includes('_ON') 
                         ? (ledNum==1 ? "w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]" : "w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_10px_#eab308]")
                         : "w-3 h-3 rounded-full bg-slate-600 shadow-none";
+                    
+                    // 設定 5 秒後自動復原為系統待命
+                    statusTimeout = setTimeout(() => {
+                        statusDiv.innerText = i18n[curLang].waiting;
+                        statusDiv.className = "text-xs text-center text-slate-500 mt-4 h-4 font-mono";
+                    }, 5000);
                 }
             } catch (e) { 
                 statusDiv.innerText = i18n[curLang].cmdFail; 
                 statusDiv.className = "text-xs text-center text-red-500 mt-4 h-4 font-mono"; 
+                
+                // 失敗時也設定 5 秒後復原
+                statusTimeout = setTimeout(() => {
+                    statusDiv.innerText = i18n[curLang].waiting;
+                    statusDiv.className = "text-xs text-center text-slate-500 mt-4 h-4 font-mono";
+                }, 5000);
             }
         }
 
-        // --- 核心邏輯：讀取、統計、警報 ---
+        // --- 核心邏輯 ---
         async function fetchSensorData() {
             const cid = localStorage.getItem('conf_channelId');
             const rkey = localStorage.getItem('conf_readKey');
@@ -333,30 +346,26 @@
                 const res = await fetch(url);
                 const data = await res.json();
                 const feeds = data.feeds;
-                currentFeeds = feeds; // 存起來給匯出用
+                currentFeeds = feeds;
 
                 if(feeds.length > 0) {
-                    // 1. 更新最新數值
                     const last = feeds[feeds.length-1];
                     const t = parseFloat(last.field1);
                     const h = parseFloat(last.field2);
                     const s = parseFloat(last.field3);
 
-                    updateCard('temp', t, 30, 'high'); // 溫度 > 30 變紅
-                    updateCard('hum', h, 40, 'low');   // 濕度 < 40 變紅
-                    updateCard('soil', s, 20, 'low');  // 土壤 < 20 變紅
+                    updateCard('temp', t, 30, 'high');
+                    updateCard('hum', h, 40, 'low');
+                    updateCard('soil', s, 20, 'low');
                     
                     document.getElementById('lastUpdate').innerText = new Date(last.created_at).toLocaleTimeString();
 
-                    // 2. 計算統計數據 (Min/Max)
                     calculateStats(feeds, 'field1', 'temp');
                     calculateStats(feeds, 'field2', 'hum');
                     
-                    // 土壤狀態文字 (使用翻譯函式)
                     updateSoilStatusText(s);
                     document.getElementById('soilStatus').className = s < 20 ? "text-red-400 font-bold" : "text-slate-300";
 
-                    // 3. 更新圖表
                     myChart.data.labels = feeds.map(f => new Date(f.created_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}));
                     myChart.data.datasets[0].data = feeds.map(f => f.field1);
                     myChart.data.datasets[1].data = feeds.map(f => f.field2);
@@ -366,7 +375,6 @@
             } catch (e) { console.error(e); }
         }
 
-        // 輔助：更新卡片顏色與數值
         function updateCard(type, val, threshold, mode) {
             const elVal = document.getElementById(type+'Val');
             const elCard = document.getElementById('card'+type.charAt(0).toUpperCase() + type.slice(1));
@@ -384,7 +392,6 @@
             }
         }
 
-        // 輔助：計算統計
         function calculateStats(feeds, field, id) {
             const values = feeds.map(f => parseFloat(f[field])).filter(v => !isNaN(v));
             if(values.length > 0) {
@@ -393,18 +400,14 @@
             }
         }
 
-        // --- 匯出 CSV ---
         function exportCSV() {
             if(currentFeeds.length === 0) return alert(i18n[curLang].exportError);
-            
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Time,Temperature,Humidity,Soil Moisture\n"; // Header
-
+            csvContent += "Time,Temperature,Humidity,Soil Moisture\n"; 
             currentFeeds.forEach(row => {
                 const t = new Date(row.created_at).toLocaleString();
                 csvContent += `${t},${row.field1},${row.field2},${row.field3}\n`;
             });
-
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
