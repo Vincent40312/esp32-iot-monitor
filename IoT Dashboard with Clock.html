@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 監控儀表板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 引入 Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-200 font-sans min-h-screen">
+
+    <nav class="bg-slate-800 p-4 border-b border-slate-700 sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <!-- 左側標題 -->
+            <div class="flex items-center">
+                <i class="fa-solid fa-chart-line text-purple-500 mr-2 text-xl"></i>
+                <h1 class="text-lg md:text-xl font-bold text-white hidden md:block">IoT Monitor & Control</h1>
+                <h1 class="text-lg font-bold text-white md:hidden">IoT Monitor</h1>
+            </div>
+
+            <!-- 中間時鐘 (新增) -->
+            <div class="flex items-center gap-2 bg-slate-900 px-4 py-1 rounded-full border border-slate-700 shadow-inner">
+                <i class="fa-regular fa-clock text-slate-400 text-sm"></i>
+                <span id="digitalClock" class="font-mono text-green-400 font-bold tracking-widest">--:--:--</span>
+            </div>
+
+            <!-- 右側設定按鈕 -->
+            <button onclick="toggleSetup()" class="text-slate-400 hover:text-white transition p-2">
+                <i class="fa-solid fa-gear text-lg"></i>
+            </button>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 max-w-5xl">
+        
+        <!-- 設定區塊 -->
+        <div id="setupPanel" class="bg-slate-800 p-6 rounded-lg mb-6 border border-purple-500/50 shadow-lg hidden">
+            <h3 class="font-bold mb-4 text-purple-300">連線設定</h3>
+            <div class="grid gap-4 md:grid-cols-2">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Channel ID</label>
+                    <input type="text" id="channelId" class="w-full bg-slate-900 border border-slate-600 rounded p-2" placeholder="123456">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Read API Key (公開可不填)</label>
+                    <input type="text" id="readKey" class="w-full bg-slate-900 border border-slate-600 rounded p-2" placeholder="XXXXXXXX">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">TalkBack ID</label>
+                    <input type="text" id="tbId" class="w-full bg-slate-900 border border-slate-600 rounded p-2">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">TalkBack API Key</label>
+                    <input type="text" id="tbKey" class="w-full bg-slate-900 border border-slate-600 rounded p-2">
+                </div>
+            </div>
+            <button onclick="saveSettings()" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded font-bold w-full transition">
+                儲存並連線
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- 數據區 -->
+            <div class="bg-slate-800 p-6 rounded-lg border border-slate-700">
+                <h3 class="text-slate-400 text-sm uppercase font-bold mb-6 flex justify-between">
+                    <span>即時環境數據</span>
+                    <span class="text-xs font-normal normal-case">資料更新於: <span id="lastUpdate" class="text-white">--</span></span>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-slate-700/50 p-4 rounded-lg text-center transform hover:scale-105 transition duration-300">
+                        <i class="fa-solid fa-temperature-half text-2xl text-red-400 mb-2"></i>
+                        <div class="text-3xl font-bold text-white" id="tempVal">--</div>
+                        <div class="text-xs text-slate-400">溫度 °C</div>
+                    </div>
+                    <div class="bg-slate-700/50 p-4 rounded-lg text-center transform hover:scale-105 transition duration-300">
+                        <i class="fa-solid fa-droplet text-2xl text-cyan-400 mb-2"></i>
+                        <div class="text-3xl font-bold text-white" id="humVal">--</div>
+                        <div class="text-xs text-slate-400">濕度 %</div>
+                    </div>
+                    <div class="bg-slate-700/50 p-4 rounded-lg text-center transform hover:scale-105 transition duration-300">
+                        <i class="fa-solid fa-seedling text-2xl text-green-400 mb-2"></i>
+                        <div class="text-3xl font-bold text-white" id="soilVal">--</div>
+                        <div class="text-xs text-slate-400">土壤 %</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 控制區 -->
+            <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 flex flex-col justify-between">
+                <h3 class="text-slate-400 text-sm uppercase font-bold mb-4">遠端開關 (響應約 2~3s)</h3>
+                
+                <div class="space-y-4">
+                    <!-- LED 1 -->
+                    <div class="bg-slate-900 p-3 rounded border border-slate-700 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div id="led1Ind" class="w-3 h-3 rounded-full bg-slate-600 transition-colors duration-500"></div>
+                            <span class="text-sm font-bold text-blue-200">LED 1</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="sendCommand('LED1_ON', 1)" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-4 py-1 rounded text-sm font-bold transition">ON</button>
+                            <button onclick="sendCommand('LED1_OFF', 1)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-4 py-1 rounded text-sm font-bold transition">OFF</button>
+                        </div>
+                    </div>
+
+                    <!-- LED 2 -->
+                    <div class="bg-slate-900 p-3 rounded border border-slate-700 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div id="led2Ind" class="w-3 h-3 rounded-full bg-slate-600 transition-colors duration-500"></div>
+                            <span class="text-sm font-bold text-yellow-200">LED 2</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="sendCommand('LED2_ON', 2)" class="bg-yellow-600 hover:bg-yellow-500 active:scale-95 text-white px-4 py-1 rounded text-sm font-bold transition">ON</button>
+                            <button onclick="sendCommand('LED2_OFF', 2)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-4 py-1 rounded text-sm font-bold transition">OFF</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="cmdStatus" class="text-xs text-center text-slate-500 mt-2 h-4"></div>
+            </div>
+        </div>
+
+        <!-- 圖表區 -->
+        <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 h-80 md:h-96 relative">
+            <h3 class="text-slate-400 text-sm uppercase font-bold mb-2">歷史趨勢圖 (最近 20 筆)</h3>
+            <div class="w-full h-full pb-6">
+                <canvas id="historyChart"></canvas>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let intervalId;
+        let myChart;
+
+        // --- 時鐘功能 (新增) ---
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-GB', { hour12: false }); // 格式 HH:MM:SS
+            document.getElementById('digitalClock').innerText = timeString;
+        }
+        setInterval(updateClock, 1000); // 每秒更新
+        updateClock(); // 立即執行一次
+
+        // --- 初始化圖表 ---
+        const ctx = document.getElementById('historyChart').getContext('2d');
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: '溫度 (°C)',
+                        data: [],
+                        borderColor: '#f87171',
+                        backgroundColor: 'rgba(248, 113, 113, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        spanGaps: true,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '濕度 (%)',
+                        data: [],
+                        borderColor: '#22d3ee',
+                        backgroundColor: 'rgba(34, 211, 238, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        spanGaps: true,
+                        yAxisID: 'y1'
+                    },
+                    {
+                        label: '土壤 (%)',
+                        data: [],
+                        borderColor: '#4ade80',
+                        backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        spanGaps: true,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: { labels: { color: '#94a3b8' } }
+                },
+                scales: {
+                    x: { ticks: { color: '#64748b' }, grid: { display: false } },
+                    y: { 
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        ticks: { color: '#f87171' }, 
+                        grid: { color: '#334155' },
+                        title: { display: true, text: '溫度', color: '#f87171' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        ticks: { color: '#e2e8f0' },
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: '濕度 / 土壤 (%)', color: '#e2e8f0' }
+                    }
+                }
+            }
+        });
+
+        function toggleSetup() {
+            document.getElementById('setupPanel').classList.toggle('hidden');
+        }
+
+        function saveSettings() {
+            const cid = document.getElementById('channelId').value;
+            const rkey = document.getElementById('readKey').value;
+            const tbid = document.getElementById('tbId').value;
+            const tbk = document.getElementById('tbKey').value;
+
+            if(!cid || !tbid || !tbk) {
+                alert("請填寫所有欄位 (Read API Key 若公開可不填)");
+            }
+
+            localStorage.setItem('conf_cid', cid);
+            localStorage.setItem('conf_rkey', rkey);
+            localStorage.setItem('conf_tbid', tbid);
+            localStorage.setItem('conf_tbk', tbk);
+
+            document.getElementById('setupPanel').classList.add('hidden');
+            startLoop();
+        }
+
+        async function sendCommand(cmd, ledNum) {
+            const tbid = document.getElementById('tbId').value;
+            const tbk = document.getElementById('tbKey').value;
+            const statusDiv = document.getElementById('cmdStatus');
+            const ind = document.getElementById(ledNum === 1 ? 'led1Ind' : 'led2Ind');
+
+            statusDiv.innerText = "發送中...";
+            statusDiv.className = "text-xs text-center text-yellow-500 mt-2 h-4";
+
+            const formData = new FormData();
+            formData.append('api_key', tbk);
+            formData.append('command_string', cmd);
+
+            try {
+                const res = await fetch(`https://api.thingspeak.com/talkbacks/${tbid}/commands`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if(res.ok) {
+                    statusDiv.innerText = `指令 [${cmd}] 已發送`;
+                    statusDiv.className = "text-xs text-center text-green-500 mt-2 h-4";
+                    
+                    if(cmd.includes('_ON')) {
+                        ind.className = ledNum === 1 
+                            ? "w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]" 
+                            : "w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_10px_#eab308]";
+                    } else {
+                        ind.className = "w-3 h-3 rounded-full bg-slate-600 shadow-none";
+                    }
+                } else {
+                    throw new Error("API Error");
+                }
+            } catch (e) {
+                console.error(e);
+                statusDiv.innerText = "發送失敗";
+                statusDiv.className = "text-xs text-center text-red-500 mt-2 h-4";
+            }
+        }
+
+        async function fetchSensorData() {
+            const cid = document.getElementById('channelId').value;
+            const rkey = document.getElementById('readKey').value;
+            if(!cid) return;
+
+            try {
+                let url = `https://api.thingspeak.com/channels/${cid}/feeds.json?results=20`;
+                if(rkey) {
+                    url += `&api_key=${rkey}`;
+                }
+
+                const res = await fetch(url);
+                if(!res.ok) throw new Error("Fetch Failed");
+                const data = await res.json();
+                
+                const feeds = data.feeds;
+                if(feeds.length > 0) {
+                    const lastFeed = feeds[feeds.length - 1];
+                    document.getElementById('tempVal').innerText = parseFloat(lastFeed.field1).toFixed(1);
+                    document.getElementById('humVal').innerText = parseFloat(lastFeed.field2).toFixed(1);
+                    const soil = parseFloat(lastFeed.field3);
+                    document.getElementById('soilVal').innerText = isNaN(soil) ? "--" : soil.toFixed(0);
+                    
+                    const d = new Date(lastFeed.created_at);
+                    document.getElementById('lastUpdate').innerText = d.toLocaleTimeString();
+                }
+
+                const labels = feeds.map(f => {
+                    const d = new Date(f.created_at);
+                    return `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`;
+                });
+                const tempData = feeds.map(f => f.field1);
+                const humData = feeds.map(f => f.field2);
+                const soilData = feeds.map(f => f.field3);
+
+                myChart.data.labels = labels;
+                myChart.data.datasets[0].data = tempData;
+                myChart.data.datasets[1].data = humData;
+                myChart.data.datasets[2].data = soilData;
+                myChart.update();
+
+            } catch (e) {
+                console.error("讀取數據失敗", e);
+            }
+        }
+
+        function startLoop() {
+            fetchSensorData();
+            if(intervalId) clearInterval(intervalId);
+            intervalId = setInterval(fetchSensorData, 15000);
+        }
+
+        window.onload = () => {
+            if(localStorage.getItem('conf_cid')) {
+                document.getElementById('channelId').value = localStorage.getItem('conf_cid');
+                document.getElementById('readKey').value = localStorage.getItem('conf_rkey') || '';
+                document.getElementById('tbId').value = localStorage.getItem('conf_tbid');
+                document.getElementById('tbKey').value = localStorage.getItem('conf_tbk');
+                
+                if(localStorage.getItem('conf_cid')) {
+                   document.getElementById('setupPanel').classList.add('hidden');
+                   startLoop();
+                } else {
+                   document.getElementById('setupPanel').classList.remove('hidden');
+                }
+            } else {
+                document.getElementById('setupPanel').classList.remove('hidden');
+            }
+        };
+    </script>
+</body>
+</html>
