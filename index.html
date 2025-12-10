@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32 雙路控制 + 歷史圖表</title>
+    <title>ESP32 監控儀表板</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- 引入 Chart.js -->
@@ -13,8 +13,23 @@
 
     <nav class="bg-slate-800 p-4 border-b border-slate-700 sticky top-0 z-50">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold text-white"><i class="fa-solid fa-chart-line text-purple-500 mr-2"></i>IoT Monitor & Control</h1>
-            <button onclick="toggleSetup()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-gear"></i></button>
+            <!-- 左側標題 -->
+            <div class="flex items-center">
+                <i class="fa-solid fa-chart-line text-purple-500 mr-2 text-xl"></i>
+                <h1 class="text-lg md:text-xl font-bold text-white hidden md:block">IoT Monitor & Control</h1>
+                <h1 class="text-lg font-bold text-white md:hidden">IoT Monitor</h1>
+            </div>
+
+            <!-- 中間時鐘 (新增) -->
+            <div class="flex items-center gap-2 bg-slate-900 px-4 py-1 rounded-full border border-slate-700 shadow-inner">
+                <i class="fa-regular fa-clock text-slate-400 text-sm"></i>
+                <span id="digitalClock" class="font-mono text-green-400 font-bold tracking-widest">--:--:--</span>
+            </div>
+
+            <!-- 右側設定按鈕 -->
+            <button onclick="toggleSetup()" class="text-slate-400 hover:text-white transition p-2">
+                <i class="fa-solid fa-gear text-lg"></i>
+            </button>
         </div>
     </nav>
 
@@ -41,7 +56,7 @@
                     <input type="text" id="tbKey" class="w-full bg-slate-900 border border-slate-600 rounded p-2">
                 </div>
             </div>
-            <button onclick="saveSettings()" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded font-bold w-full">
+            <button onclick="saveSettings()" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded font-bold w-full transition">
                 儲存並連線
             </button>
         </div>
@@ -49,55 +64,55 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <!-- 數據區 -->
             <div class="bg-slate-800 p-6 rounded-lg border border-slate-700">
-                <h3 class="text-slate-400 text-sm uppercase font-bold mb-6">即時環境數據</h3>
-                <!-- 修改這裡：改成 3 欄位以容納土壤傳感器 -->
+                <h3 class="text-slate-400 text-sm uppercase font-bold mb-6 flex justify-between">
+                    <span>即時環境數據</span>
+                    <span class="text-xs font-normal normal-case">資料更新於: <span id="lastUpdate" class="text-white">--</span></span>
+                </h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-slate-700/50 p-4 rounded-lg text-center">
+                    <div class="bg-slate-700/50 p-4 rounded-lg text-center transform hover:scale-105 transition duration-300">
                         <i class="fa-solid fa-temperature-half text-2xl text-red-400 mb-2"></i>
                         <div class="text-3xl font-bold text-white" id="tempVal">--</div>
                         <div class="text-xs text-slate-400">溫度 °C</div>
                     </div>
-                    <div class="bg-slate-700/50 p-4 rounded-lg text-center">
+                    <div class="bg-slate-700/50 p-4 rounded-lg text-center transform hover:scale-105 transition duration-300">
                         <i class="fa-solid fa-droplet text-2xl text-cyan-400 mb-2"></i>
                         <div class="text-3xl font-bold text-white" id="humVal">--</div>
                         <div class="text-xs text-slate-400">濕度 %</div>
                     </div>
-                    <!-- 新增：土壤濕度卡片 -->
-                    <div class="bg-slate-700/50 p-4 rounded-lg text-center">
+                    <div class="bg-slate-700/50 p-4 rounded-lg text-center transform hover:scale-105 transition duration-300">
                         <i class="fa-solid fa-seedling text-2xl text-green-400 mb-2"></i>
                         <div class="text-3xl font-bold text-white" id="soilVal">--</div>
                         <div class="text-xs text-slate-400">土壤 %</div>
                     </div>
                 </div>
-                <div class="mt-4 text-xs text-slate-500 text-center">上次更新: <span id="lastUpdate">--</span></div>
             </div>
 
             <!-- 控制區 -->
             <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 flex flex-col justify-between">
-                <h3 class="text-slate-400 text-sm uppercase font-bold mb-4">遠端開關 (延遲約 10s)</h3>
+                <h3 class="text-slate-400 text-sm uppercase font-bold mb-4">遠端開關 (響應約 2~3s)</h3>
                 
                 <div class="space-y-4">
                     <!-- LED 1 -->
                     <div class="bg-slate-900 p-3 rounded border border-slate-700 flex items-center justify-between">
                         <div class="flex items-center gap-2">
-                            <div id="led1Ind" class="w-3 h-3 rounded-full bg-slate-600"></div>
+                            <div id="led1Ind" class="w-3 h-3 rounded-full bg-slate-600 transition-colors duration-500"></div>
                             <span class="text-sm font-bold text-blue-200">LED 1</span>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="sendCommand('LED1_ON', 1)" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs">ON</button>
-                            <button onclick="sendCommand('LED1_OFF', 1)" class="bg-slate-600 hover:bg-slate-500 text-white px-3 py-1 rounded text-xs">OFF</button>
+                            <button onclick="sendCommand('LED1_ON', 1)" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-4 py-1 rounded text-sm font-bold transition">ON</button>
+                            <button onclick="sendCommand('LED1_OFF', 1)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-4 py-1 rounded text-sm font-bold transition">OFF</button>
                         </div>
                     </div>
 
                     <!-- LED 2 -->
                     <div class="bg-slate-900 p-3 rounded border border-slate-700 flex items-center justify-between">
                         <div class="flex items-center gap-2">
-                            <div id="led2Ind" class="w-3 h-3 rounded-full bg-slate-600"></div>
+                            <div id="led2Ind" class="w-3 h-3 rounded-full bg-slate-600 transition-colors duration-500"></div>
                             <span class="text-sm font-bold text-yellow-200">LED 2</span>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="sendCommand('LED2_ON', 2)" class="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded text-xs">ON</button>
-                            <button onclick="sendCommand('LED2_OFF', 2)" class="bg-slate-600 hover:bg-slate-500 text-white px-3 py-1 rounded text-xs">OFF</button>
+                            <button onclick="sendCommand('LED2_ON', 2)" class="bg-yellow-600 hover:bg-yellow-500 active:scale-95 text-white px-4 py-1 rounded text-sm font-bold transition">ON</button>
+                            <button onclick="sendCommand('LED2_OFF', 2)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-4 py-1 rounded text-sm font-bold transition">OFF</button>
                         </div>
                     </div>
                 </div>
@@ -106,7 +121,7 @@
         </div>
 
         <!-- 圖表區 -->
-        <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 h-80 md:h-96">
+        <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 h-80 md:h-96 relative">
             <h3 class="text-slate-400 text-sm uppercase font-bold mb-2">歷史趨勢圖 (最近 20 筆)</h3>
             <div class="w-full h-full pb-6">
                 <canvas id="historyChart"></canvas>
@@ -118,6 +133,15 @@
     <script>
         let intervalId;
         let myChart;
+
+        // --- 時鐘功能 (新增) ---
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-GB', { hour12: false }); // 格式 HH:MM:SS
+            document.getElementById('digitalClock').innerText = timeString;
+        }
+        setInterval(updateClock, 1000); // 每秒更新
+        updateClock(); // 立即執行一次
 
         // --- 初始化圖表 ---
         const ctx = document.getElementById('historyChart').getContext('2d');
@@ -131,7 +155,7 @@
                         data: [],
                         borderColor: '#f87171',
                         backgroundColor: 'rgba(248, 113, 113, 0.1)',
-                        tension: 0.3,
+                        tension: 0.4,
                         fill: true,
                         spanGaps: true,
                         yAxisID: 'y'
@@ -141,21 +165,20 @@
                         data: [],
                         borderColor: '#22d3ee',
                         backgroundColor: 'rgba(34, 211, 238, 0.1)',
-                        tension: 0.3,
+                        tension: 0.4,
                         fill: true,
                         spanGaps: true,
                         yAxisID: 'y1'
                     },
-                    // 新增：土壤數據集
                     {
                         label: '土壤 (%)',
                         data: [],
-                        borderColor: '#4ade80', // Green
+                        borderColor: '#4ade80',
                         backgroundColor: 'rgba(74, 222, 128, 0.1)',
-                        tension: 0.3,
+                        tension: 0.4,
                         fill: true,
                         spanGaps: true,
-                        yAxisID: 'y1' // 與空氣濕度共用 Y 軸 (都是 %)
+                        yAxisID: 'y1'
                     }
                 ]
             },
@@ -183,7 +206,7 @@
                         type: 'linear',
                         display: true,
                         position: 'right',
-                        ticks: { color: '#e2e8f0' }, // 通用顏色因為有兩個數據
+                        ticks: { color: '#e2e8f0' },
                         grid: { drawOnChartArea: false },
                         title: { display: true, text: '濕度 / 土壤 (%)', color: '#e2e8f0' }
                     }
@@ -274,7 +297,6 @@
                     const lastFeed = feeds[feeds.length - 1];
                     document.getElementById('tempVal').innerText = parseFloat(lastFeed.field1).toFixed(1);
                     document.getElementById('humVal').innerText = parseFloat(lastFeed.field2).toFixed(1);
-                    // 新增：顯示土壤濕度 (field3)
                     const soil = parseFloat(lastFeed.field3);
                     document.getElementById('soilVal').innerText = isNaN(soil) ? "--" : soil.toFixed(0);
                     
@@ -288,13 +310,12 @@
                 });
                 const tempData = feeds.map(f => f.field1);
                 const humData = feeds.map(f => f.field2);
-                // 新增：獲取 field3 數據
                 const soilData = feeds.map(f => f.field3);
 
                 myChart.data.labels = labels;
                 myChart.data.datasets[0].data = tempData;
                 myChart.data.datasets[1].data = humData;
-                myChart.data.datasets[2].data = soilData; // 加入圖表
+                myChart.data.datasets[2].data = soilData;
                 myChart.update();
 
             } catch (e) {
