@@ -64,97 +64,117 @@
             <button onclick="saveSettings()" class="mt-4 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-bold w-full transition shadow-lg" data-i18n="saveBtn">儲存設定</button>
         </div>
 
+        <!-- 分頁切換按鈕 -->
+        <div class="flex space-x-1 mb-6 border-b border-slate-700">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-2 px-4 text-green-400 border-b-2 border-green-400 font-bold focus:outline-none transition-colors" data-i18n="tabDash">儀表板</button>
+            <button onclick="switchTab('logs')" id="tab-logs" class="py-2 px-4 text-slate-400 hover:text-slate-200 border-b-2 border-transparent focus:outline-none transition-colors" data-i18n="tabLog">系統日誌</button>
+        </div>
+
         <div id="alertContainer" class="space-y-3 mb-6"></div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            
-            <!-- 數據區 -->
-            <div class="lg:col-span-2 bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex flex-col justify-between">
-                <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-2">
-                    <h3 class="text-slate-400 text-sm uppercase font-bold tracking-wider" data-i18n="monitorTitle">環境監測</h3>
-                    <span class="text-xs text-slate-500 font-mono"><span data-i18n="updated">更新:</span> <span id="lastUpdate" class="text-white">--</span></span>
-                </div>
+        <!-- 頁面 1: 儀表板 -->
+        <div id="view-dashboard">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div id="cardTemp" class="bg-slate-700/30 p-5 rounded-lg text-center border border-transparent transition-all duration-500 hover:bg-slate-700/50">
-                        <i class="fa-solid fa-temperature-half text-3xl text-red-400 mb-3"></i>
-                        <div class="text-5xl font-bold text-white mb-1 tracking-tighter" id="tempVal">--</div>
-                        <div class="text-xs text-slate-400 font-bold uppercase"><span data-i18n="temp">溫度</span> °C</div>
+                <!-- 數據區 -->
+                <div class="lg:col-span-2 bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-2">
+                        <h3 class="text-slate-400 text-sm uppercase font-bold tracking-wider" data-i18n="monitorTitle">環境監測</h3>
+                        <span class="text-xs text-slate-500 font-mono"><span data-i18n="updated">更新:</span> <span id="lastUpdate" class="text-white">--</span></span>
                     </div>
-                    <div id="cardHum" class="bg-slate-700/30 p-5 rounded-lg text-center border border-transparent transition-all duration-500 hover:bg-slate-700/50">
-                        <i class="fa-solid fa-droplet text-3xl text-cyan-400 mb-3"></i>
-                        <div class="text-5xl font-bold text-white mb-1 tracking-tighter" id="humVal">--</div>
-                        <div class="text-xs text-slate-400 font-bold uppercase"><span data-i18n="hum">濕度</span> %</div>
-                    </div>
-                    <div id="cardSoil" class="bg-slate-700/30 p-5 rounded-lg text-center border border-transparent transition-all duration-500 hover:bg-slate-700/50">
-                        <i class="fa-solid fa-seedling text-3xl text-green-400 mb-3"></i>
-                        <div class="text-5xl font-bold text-white mb-1 tracking-tighter" id="soilVal">--</div>
-                        <div class="text-xs text-slate-400 font-bold uppercase"><span data-i18n="soil">土壤</span> %</div>
-                        <div class="mt-2 text-xs text-slate-500 bg-slate-900/60 rounded-full py-1 px-2 inline-block">
-                            <span data-i18n="status">狀態</span>: <span id="soilStatus" class="text-slate-300 font-bold">--</span>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div id="cardTemp" class="bg-slate-700/30 p-5 rounded-lg text-center border border-transparent transition-all duration-500 hover:bg-slate-700/50">
+                            <i class="fa-solid fa-temperature-half text-3xl text-red-400 mb-3"></i>
+                            <div class="text-5xl font-bold text-white mb-1 tracking-tighter" id="tempVal">--</div>
+                            <div class="text-xs text-slate-400 font-bold uppercase"><span data-i18n="temp">溫度</span> °C</div>
+                        </div>
+                        <div id="cardHum" class="bg-slate-700/30 p-5 rounded-lg text-center border border-transparent transition-all duration-500 hover:bg-slate-700/50">
+                            <i class="fa-solid fa-droplet text-3xl text-cyan-400 mb-3"></i>
+                            <div class="text-5xl font-bold text-white mb-1 tracking-tighter" id="humVal">--</div>
+                            <div class="text-xs text-slate-400 font-bold uppercase"><span data-i18n="hum">濕度</span> %</div>
+                        </div>
+                        <div id="cardSoil" class="bg-slate-700/30 p-5 rounded-lg text-center border border-transparent transition-all duration-500 hover:bg-slate-700/50">
+                            <i class="fa-solid fa-seedling text-3xl text-green-400 mb-3"></i>
+                            <div class="text-5xl font-bold text-white mb-1 tracking-tighter" id="soilVal">--</div>
+                            <div class="text-xs text-slate-400 font-bold uppercase"><span data-i18n="soil">土壤</span> %</div>
+                            <div class="mt-2 text-xs text-slate-500 bg-slate-900/60 rounded-full py-1 px-2 inline-block">
+                                <span data-i18n="status">狀態</span>: <span id="soilStatus" class="text-slate-300 font-bold">--</span>
+                            </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- 控制區 -->
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex flex-col">
+                    <h3 class="text-slate-400 text-sm uppercase font-bold mb-6 border-b border-slate-700 pb-2" data-i18n="controlTitle">系統狀態</h3>
+                    
+                    <div class="space-y-4 flex-grow">
+                        <!-- 感測器 -->
+                        <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <i id="sensorIcon" class="fa-solid fa-heart-pulse text-slate-500 text-lg"></i>
+                                <span class="text-sm font-bold text-slate-300" data-i18n="sensorHealth">感測器</span>
+                            </div>
+                            <span id="sensorText" class="text-xs font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded">OK</span>
+                        </div>
+
+                        <!-- 水泵 -->
+                        <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-blue-500/50">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div id="pumpInd" class="w-3 h-3 rounded-full bg-slate-600 transition-all duration-500"></div>
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-bold text-blue-200" data-i18n="pump">水泵</span>
+                                        <span class="text-[10px] text-slate-500">Auto Control</span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-1">
+                                    <button onclick="sendCommand('LED1_ON', 1)" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">ON</button>
+                                    <button onclick="sendCommand('LED1_OFF', 1)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">OFF</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 施肥 -->
+                        <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-yellow-500/50">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div id="fertInd" class="w-3 h-3 rounded-full bg-slate-600 transition-all duration-500"></div>
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-bold text-yellow-200" data-i18n="fert">施肥</span>
+                                        <span class="text-[10px] text-slate-500">Timer: 08:00</span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-1">
+                                    <button onclick="sendCommand('LED2_ON', 2)" class="bg-yellow-600 hover:bg-yellow-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">ON</button>
+                                    <button onclick="sendCommand('LED2_OFF', 2)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">OFF</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="cmdStatus" class="text-xs text-center text-slate-500 mt-4 h-4 font-mono tracking-wide" data-i18n="waiting">System Ready</div>
                 </div>
             </div>
 
-            <!-- 控制區 -->
-            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex flex-col">
-                <h3 class="text-slate-400 text-sm uppercase font-bold mb-6 border-b border-slate-700 pb-2" data-i18n="controlTitle">系統狀態</h3>
-                
-                <div class="space-y-4 flex-grow">
-                    <!-- 感測器 -->
-                    <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700 flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <i id="sensorIcon" class="fa-solid fa-heart-pulse text-slate-500 text-lg"></i>
-                            <span class="text-sm font-bold text-slate-300" data-i18n="sensorHealth">感測器</span>
-                        </div>
-                        <span id="sensorText" class="text-xs font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded">OK</span>
-                    </div>
-
-                    <!-- 水泵 -->
-                    <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-blue-500/50">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div id="pumpInd" class="w-3 h-3 rounded-full bg-slate-600 transition-all duration-500"></div>
-                                <div class="flex flex-col">
-                                    <span class="text-sm font-bold text-blue-200" data-i18n="pump">水泵</span>
-                                    <span class="text-[10px] text-slate-500">Auto Control</span>
-                                </div>
-                            </div>
-                            <div class="flex gap-1">
-                                <button onclick="sendCommand('LED1_ON', 1)" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">ON</button>
-                                <button onclick="sendCommand('LED1_OFF', 1)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">OFF</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 施肥 -->
-                    <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-yellow-500/50">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div id="fertInd" class="w-3 h-3 rounded-full bg-slate-600 transition-all duration-500"></div>
-                                <div class="flex flex-col">
-                                    <span class="text-sm font-bold text-yellow-200" data-i18n="fert">施肥</span>
-                                    <span class="text-[10px] text-slate-500">Timer: 08:00</span>
-                                </div>
-                            </div>
-                            <div class="flex gap-1">
-                                <button onclick="sendCommand('LED2_ON', 2)" class="bg-yellow-600 hover:bg-yellow-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">ON</button>
-                                <button onclick="sendCommand('LED2_OFF', 2)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">OFF</button>
-                            </div>
-                        </div>
-                    </div>
+            <!-- 圖表區 -->
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 h-80 relative shadow-lg">
+                <h3 class="text-slate-400 text-sm uppercase font-bold mb-2 absolute top-4 left-6" data-i18n="chartTitle">趨勢分析</h3>
+                <div class="w-full h-full pb-2 pt-6">
+                    <canvas id="historyChart"></canvas>
                 </div>
-                
-                <div id="cmdStatus" class="text-xs text-center text-slate-500 mt-4 h-4 font-mono tracking-wide" data-i18n="waiting">System Ready</div>
             </div>
         </div>
 
-        <!-- 圖表區 -->
-        <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 h-80 relative shadow-lg">
-            <h3 class="text-slate-400 text-sm uppercase font-bold mb-2 absolute top-4 left-6" data-i18n="chartTitle">趨勢分析</h3>
-            <div class="w-full h-full pb-2 pt-6">
-                <canvas id="historyChart"></canvas>
+        <!-- 頁面 2: 系統日誌 -->
+        <div id="view-logs" class="hidden h-full">
+            <div class="bg-black p-4 rounded-lg border border-slate-700 font-mono text-xs h-[30rem] overflow-y-scroll shadow-inner relative">
+                <div class="text-green-400 font-bold mb-2 sticky top-0 bg-black/90 p-1 border-b border-green-900/50 flex justify-between">
+                    <span>>>> System Diagnostic Log</span>
+                    <button onclick="document.getElementById('debugLog').innerHTML=''" class="text-xs text-slate-500 hover:text-white px-2 border border-slate-700 rounded">Clear</button>
+                </div>
+                <div id="debugLog" class="text-slate-300 space-y-1"></div>
             </div>
         </div>
 
@@ -170,6 +190,23 @@
         let currentFeeds = [];
         let curLang = 'zh';
         let statusTimeout;
+
+        // --- 簡易日誌功能 ---
+        function log(msg, type='info') {
+            const box = document.getElementById('debugLog');
+            if(!box) return;
+            const time = new Date().toLocaleTimeString();
+            let color = "text-slate-300";
+            if(type === 'error') color = "text-red-400 font-bold";
+            if(type === 'success') color = "text-green-400";
+            if(type === 'warn') color = "text-yellow-400";
+            
+            const div = document.createElement('div');
+            div.className = color;
+            div.innerText = `[${time}] ${msg}`;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight; // 自動捲動到底部
+        }
 
         const i18n = {
             zh: {
@@ -201,7 +238,9 @@
                 alertSens: "警報：感測器讀取失敗，自動化已暫停！",
                 exportError: "無數據可匯出",
                 fillAlert: "請完整填寫 Channel ID",
-                tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key 才能使用控制功能！"
+                tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key 才能使用控制功能！",
+                tabDash: "儀表板",
+                tabLog: "系統日誌"
             },
             en: {
                 navTitle: "Smart Farm Automation",
@@ -232,7 +271,9 @@
                 alertSens: "ALERT: Sensor failure detected! Automation paused.",
                 exportError: "No data",
                 fillAlert: "Please fill in Channel ID",
-                tbAlert: "Please fill in TalkBack ID and API Key in settings first!"
+                tbAlert: "Please fill in TalkBack ID and API Key in settings first!",
+                tabDash: "Dashboard",
+                tabLog: "System Logs"
             }
         };
 
@@ -258,6 +299,25 @@
             if(currentFeeds.length > 0) {
                 const last = currentFeeds[currentFeeds.length-1];
                 updateUI(last);
+            }
+        }
+
+        function switchTab(tab) {
+            const dash = document.getElementById('view-dashboard');
+            const logs = document.getElementById('view-logs');
+            const btnDash = document.getElementById('tab-dashboard');
+            const btnLogs = document.getElementById('tab-logs');
+
+            if (tab === 'dashboard') {
+                dash.classList.remove('hidden');
+                logs.classList.add('hidden');
+                btnDash.className = "py-2 px-4 text-green-400 border-b-2 border-green-400 font-bold focus:outline-none transition-colors";
+                btnLogs.className = "py-2 px-4 text-slate-400 hover:text-slate-200 border-b-2 border-transparent focus:outline-none transition-colors";
+            } else {
+                dash.classList.add('hidden');
+                logs.classList.remove('hidden');
+                btnLogs.className = "py-2 px-4 text-green-400 border-b-2 border-green-400 font-bold focus:outline-none transition-colors";
+                btnDash.className = "py-2 px-4 text-slate-400 hover:text-slate-200 border-b-2 border-transparent focus:outline-none transition-colors";
             }
         }
 
@@ -295,6 +355,7 @@
                 localStorage.setItem('conf_'+id, document.getElementById(id).value);
             });
             document.getElementById('setupPanel').classList.add('hidden');
+            log("設定已儲存。", "success");
             setConnStatus("connecting");
             startLoop();
         }
@@ -320,9 +381,13 @@
         async function fetchSensorData() {
             const cid = localStorage.getItem('conf_channelId');
             const rkey = localStorage.getItem('conf_readKey');
-            if(!cid) return;
+            if(!cid) {
+                log("尚未設定 Channel ID。", "warn");
+                return;
+            }
 
             try {
+                log("讀取 ThingSpeak 數據...", "info");
                 let url = `https://api.thingspeak.com/channels/${cid}/feeds.json?results=20`;
                 if(rkey) url += `&api_key=${rkey}`;
 
@@ -334,6 +399,7 @@
                 currentFeeds = feeds;
 
                 setConnStatus("success");
+                log(`成功讀取 ${feeds.length} 筆資料`, "success");
 
                 if(feeds.length > 0) {
                     const last = feeds[feeds.length-1];
@@ -344,9 +410,12 @@
                     myChart.data.datasets[1].data = feeds.map(f => f.field2);
                     myChart.data.datasets[2].data = feeds.map(f => f.field3);
                     myChart.update();
+                } else {
+                    log("無數據 (feeds 為空)", "warn");
                 }
             } catch(e) { 
                 console.error(e);
+                log(`讀取失敗: ${e.message}`, "error");
                 setConnStatus("error");
             }
         }
@@ -430,13 +499,17 @@
             const tbk = localStorage.getItem('conf_tbKey');
             const statusDiv = document.getElementById('cmdStatus');
             
-            if(!tbid || !tbk) return alert(i18n[curLang].tbAlert);
+            if(!tbid || !tbk) {
+                alert(i18n[curLang].tbAlert);
+                log("發送失敗：未設定 TalkBack ID/Key", "error");
+                return;
+            }
             if(statusTimeout) clearTimeout(statusTimeout);
 
             statusDiv.innerText = i18n[curLang].cmdSending;
             statusDiv.className = "text-xs text-center text-yellow-500 mt-4 h-4 font-mono";
+            log(`正在發送指令: ${cmd}...`);
 
-            // 改用 URLSearchParams 格式，ThingSpeak 比較吃這套
             const params = new URLSearchParams();
             params.append('api_key', tbk);
             params.append('command_string', cmd);
@@ -453,6 +526,7 @@
                 if(res.ok) {
                     statusDiv.innerText = i18n[curLang].cmdSent;
                     statusDiv.className = "text-xs text-center text-green-500 mt-4 h-4 font-mono";
+                    log(`指令 ${cmd} 發送成功！`, "success");
                     statusTimeout = setTimeout(() => {
                         statusDiv.innerText = i18n[curLang].waiting;
                         statusDiv.className = "text-xs text-center text-slate-500 mt-4 h-4 font-mono";
@@ -464,6 +538,7 @@
                 console.error(e);
                 statusDiv.innerText = i18n[curLang].cmdFail;
                 statusDiv.className = "text-xs text-center text-red-500 mt-4 h-4 font-mono";
+                log(`指令發送失敗: ${e.message}`, "error");
             }
         }
 
@@ -480,6 +555,7 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            log("已匯出 CSV 報表", "success");
         }
 
         function startLoop() {
@@ -489,6 +565,7 @@
         }
 
         window.onload = () => {
+            log("系統啟動中...", "info");
             ['channelId','readKey','tbId','tbKey'].forEach(id => {
                 if(localStorage.getItem('conf_'+id)) document.getElementById(id).value = localStorage.getItem('conf_'+id);
             });
