@@ -25,7 +25,6 @@
             <div class="flex items-center">
                 <i class="fa-solid fa-leaf text-green-500 mr-3 text-xl"></i>
                 <h1 class="text-lg md:text-xl font-bold text-white hidden md:block tracking-wide" data-i18n="navTitle">Smart Farm Auto</h1>
-                <!-- 連線狀態指示燈 (新增) -->
                 <div id="connStatus" class="ml-4 px-2 py-1 text-xs rounded bg-slate-700 text-slate-400 flex items-center">
                     <div class="w-2 h-2 rounded-full bg-slate-500 mr-2" id="connDot"></div>
                     <span id="connText">待機</span>
@@ -59,8 +58,8 @@
             <div class="grid gap-4 md:grid-cols-2">
                 <div><label class="block text-xs text-slate-400 mb-1 font-bold">Channel ID *</label><input type="text" id="channelId" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition"></div>
                 <div><label class="block text-xs text-slate-400 mb-1 font-bold">Read API Key</label><input type="text" id="readKey" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition"></div>
-                <div><label class="block text-xs text-slate-400 mb-1 font-bold">TalkBack ID</label><input type="text" id="tbId" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition"></div>
-                <div><label class="block text-xs text-slate-400 mb-1 font-bold">TalkBack API Key</label><input type="text" id="tbKey" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition"></div>
+                <div><label class="block text-xs text-slate-400 mb-1 font-bold text-yellow-400">TalkBack ID (控制必填)</label><input type="text" id="tbId" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition"></div>
+                <div><label class="block text-xs text-slate-400 mb-1 font-bold text-yellow-400">TalkBack API Key (控制必填)</label><input type="text" id="tbKey" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition"></div>
             </div>
             <button onclick="saveSettings()" class="mt-4 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-bold w-full transition shadow-lg" data-i18n="saveBtn">儲存設定</button>
         </div>
@@ -161,6 +160,10 @@
 
     </main>
 
+    <footer class="text-center p-4 text-slate-600 text-xs border-t border-slate-800 mt-4">
+        ESP32 Smart Farm Project &copy; 2025
+    </footer>
+
     <script>
         let intervalId;
         let myChart;
@@ -168,7 +171,6 @@
         let curLang = 'zh';
         let statusTimeout;
 
-        // --- 多語言設定 ---
         const i18n = {
             zh: {
                 navTitle: "智慧農場自動化系統",
@@ -192,13 +194,14 @@
                 waiting: "系統待命中",
                 cmdSending: "指令發送中...",
                 cmdSent: "指令已發送",
-                cmdFail: "發送失敗",
+                cmdFail: "發送失敗！請檢查 TalkBack 設定",
                 errorSens: "感測器異常",
                 normal: "正常",
                 alertLock: "警報：水泵運轉超時，系統已強制鎖定！(需手動重啟)",
                 alertSens: "警報：感測器讀取失敗，自動化已暫停！",
                 exportError: "無數據可匯出",
-                fillAlert: "請填寫 Channel ID"
+                fillAlert: "請完整填寫 Channel ID",
+                tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key 才能使用控制功能！"
             },
             en: {
                 navTitle: "Smart Farm Automation",
@@ -222,13 +225,14 @@
                 waiting: "System Ready",
                 cmdSending: "Sending...",
                 cmdSent: "Command Sent",
-                cmdFail: "Failed",
+                cmdFail: "Failed! Check TalkBack Settings",
                 errorSens: "Sensor Error",
                 normal: "Normal",
                 alertLock: "ALERT: Pump timeout! System locked. (Reset required)",
                 alertSens: "ALERT: Sensor failure detected! Automation paused.",
                 exportError: "No data",
-                fillAlert: "Please fill in Channel ID"
+                fillAlert: "Please fill in Channel ID",
+                tbAlert: "Please fill in TalkBack ID and API Key in settings first!"
             }
         };
 
@@ -257,7 +261,6 @@
             }
         }
 
-        // --- Chart 初始化 ---
         const ctx = document.getElementById('historyChart').getContext('2d');
         myChart = new Chart(ctx, {
             type: 'line',
@@ -273,7 +276,7 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { labels: { color: '#94a3b8' } } },
+                plugins: { legend: { labels: { color: '#94a3b8', font: {size: 10} } } },
                 scales: {
                     x: { ticks: { color: '#64748b', maxTicksLimit: 6 }, grid: { display: false } },
                     y: { type: 'linear', display: true, position: 'left', ticks: { color: '#f87171' }, grid: { color: '#334155' } },
@@ -285,7 +288,6 @@
         function toggleSetup() { document.getElementById('setupPanel').classList.toggle('hidden'); }
 
         function saveSettings() {
-            // 只強制檢查 Channel ID，其他可選
             const cid = document.getElementById('channelId').value;
             if(!cid) return alert(i18n[curLang].fillAlert);
             
@@ -297,7 +299,6 @@
             startLoop();
         }
 
-        // --- 連線狀態顯示 ---
         function setConnStatus(status) {
             const dot = document.getElementById('connDot');
             const txt = document.getElementById('connText');
@@ -316,7 +317,6 @@
             }
         }
 
-        // --- 數據讀取 ---
         async function fetchSensorData() {
             const cid = localStorage.getItem('conf_channelId');
             const rkey = localStorage.getItem('conf_readKey');
@@ -362,18 +362,15 @@
             document.getElementById('soilVal').innerText = isNaN(s) ? "--" : s.toFixed(0);
             document.getElementById('lastUpdate').innerText = new Date(d.created_at).toLocaleTimeString();
 
-            // 卡片變色
             updateCard('temp', t, 30, 'high');
             updateCard('soil', s, 20, 'low');
 
-            // 土壤文字
             const elSoil = document.getElementById('soilStatus');
             if(!isNaN(s)) {
                 elSoil.innerText = s < 20 ? i18n[curLang].statusDry : (s > 80 ? i18n[curLang].statusWet : i18n[curLang].statusOk);
                 elSoil.className = s < 20 ? "text-red-400 font-bold" : "text-slate-300 font-bold";
             }
 
-            // 狀態解碼
             const isPump = (status & 1) > 0;
             const isFert = (status & 2) > 0;
             const isLock = (status & 4) > 0;
@@ -427,23 +424,32 @@
             elCard.className = isAlert ? "bg-red-900/40 p-5 rounded-lg text-center border border-red-500 animate-pulse transition-all duration-500" : "bg-slate-700/30 p-5 rounded-lg text-center border border-transparent transition-all duration-500 hover:bg-slate-700/50";
         }
 
+        // --- 修正後的指令發送 (使用 URLSearchParams) ---
         async function sendCommand(cmd, ledNum) {
             const tbid = localStorage.getItem('conf_tbId');
             const tbk = localStorage.getItem('conf_tbKey');
             const statusDiv = document.getElementById('cmdStatus');
             
-            if(!tbid || !tbk) return alert(i18n[curLang].fillAlert);
+            if(!tbid || !tbk) return alert(i18n[curLang].tbAlert);
             if(statusTimeout) clearTimeout(statusTimeout);
 
             statusDiv.innerText = i18n[curLang].cmdSending;
             statusDiv.className = "text-xs text-center text-yellow-500 mt-4 h-4 font-mono";
 
-            const formData = new FormData();
-            formData.append('api_key', tbk);
-            formData.append('command_string', cmd);
+            // 改用 URLSearchParams 格式，ThingSpeak 比較吃這套
+            const params = new URLSearchParams();
+            params.append('api_key', tbk);
+            params.append('command_string', cmd);
 
             try {
-                const res = await fetch(`https://api.thingspeak.com/talkbacks/${tbid}/commands`, { method: 'POST', body: formData });
+                const res = await fetch(`https://api.thingspeak.com/talkbacks/${tbid}/commands`, { 
+                    method: 'POST', 
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: params 
+                });
+
                 if(res.ok) {
                     statusDiv.innerText = i18n[curLang].cmdSent;
                     statusDiv.className = "text-xs text-center text-green-500 mt-4 h-4 font-mono";
@@ -451,8 +457,11 @@
                         statusDiv.innerText = i18n[curLang].waiting;
                         statusDiv.className = "text-xs text-center text-slate-500 mt-4 h-4 font-mono";
                     }, 5000);
+                } else {
+                    throw new Error("HTTP " + res.status);
                 }
             } catch (e) { 
+                console.error(e);
                 statusDiv.innerText = i18n[curLang].cmdFail;
                 statusDiv.className = "text-xs text-center text-red-500 mt-4 h-4 font-mono";
             }
@@ -476,7 +485,7 @@
         function startLoop() {
             if(intervalId) clearInterval(intervalId);
             fetchSensorData();
-            intervalId = setInterval(fetchSensorData, 10000); // 10秒一次
+            intervalId = setInterval(fetchSensorData, 10000);
         }
 
         window.onload = () => {
