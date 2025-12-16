@@ -7,16 +7,16 @@
 #include "soc/rtc_cntl_reg.h"
 
 // ==========================================
-//  ESP32 智慧農場 (含緊急停機功能)
+//  ESP32 智慧農場 (含緊急停機功能) v6.2
 //  功能：強制單一運作 + 自動/手動 + 緊急停機
 // ==========================================
 
-const char* ssid = "oao";
-const char* password = "0936698942";
+const char* ssid = "EVDS";
+const char* password = "EVDS0501";
 
-String writeApiKey = "你的_WRITE_API_KEY"; 
-String talkBackID = "你的_TALKBACK_ID";
-String talkBackKey = "你的_TALKBACK_API_KEY";
+String writeApiKey = "EEOBAMUB5SO5P42G"; 
+String talkBackID = "55962";
+String talkBackKey = "T8LJBZEQZCQURIGI";
 
 const int pumpPin = 2;    // 水泵
 const int fertPin = 5;    // 施肥
