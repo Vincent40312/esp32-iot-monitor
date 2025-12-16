@@ -15,16 +15,12 @@
             70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
         }
         .animate-pulse-red { animation: pulse-red 2s infinite; }
-        /* 日期選擇器暗色模式修正 */
-        input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-            filter: invert(1);
-            cursor: pointer;
-        }
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-200 font-sans min-h-screen flex flex-col">
 
-    <!-- 導覽列 -->
+    <!-- Navbar -->
     <nav class="bg-slate-800 p-4 border-b border-slate-700 sticky top-0 z-50 shadow-lg">
         <div class="container mx-auto flex justify-between items-center">
             <div class="flex items-center">
@@ -57,22 +53,19 @@
 
     <main class="container mx-auto p-4 max-w-6xl flex-grow">
         
-        <!-- 設定面板 (已移除匯出區塊) -->
+        <!-- Setup Panel -->
         <div id="setupPanel" class="bg-slate-800 p-6 rounded-lg mb-6 border border-green-500/50 shadow-2xl hidden transform transition-all">
             <h3 class="font-bold mb-4 text-green-300 text-lg flex items-center"><i class="fa-solid fa-sliders mr-2"></i> <span data-i18n="setupTitle">系統設定</span></h3>
-            
-            <div class="grid gap-4 md:grid-cols-2 mb-6">
+            <div class="grid gap-4 md:grid-cols-2">
                 <div><label class="block text-xs text-slate-400 mb-1 font-bold">Channel ID *</label><input type="text" id="channelId" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition"></div>
                 <div><label class="block text-xs text-slate-400 mb-1 font-bold">Read API Key</label><input type="text" id="readKey" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition"></div>
                 <div><label class="block text-xs text-slate-400 mb-1 font-bold">TalkBack ID (控制必填)</label><input type="text" id="tbId" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition"></div>
                 <div><label class="block text-xs text-slate-400 mb-1 font-bold">TalkBack API Key (控制必填)</label><input type="text" id="tbKey" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition"></div>
-                <div class="md:col-span-2"><label class="block text-xs text-slate-400 mb-1 font-bold" data-i18n="dataLimitLabel">快速讀取/匯出筆數 (10-8000)</label><input type="number" id="dataLimit" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition" min="10" max="8000" value="50"></div>
             </div>
-
-            <button onclick="saveSettings()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-bold w-full transition shadow-lg" data-i18n="saveBtn">儲存設定並連線</button>
+            <button onclick="saveSettings()" class="mt-4 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-bold w-full transition shadow-lg" data-i18n="saveBtn">儲存設定</button>
         </div>
 
-        <!-- 分頁切換按鈕 -->
+        <!-- Tabs -->
         <div class="flex space-x-1 mb-6 border-b border-slate-700">
             <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-2 px-4 text-green-400 border-b-2 border-green-400 font-bold focus:outline-none transition-colors" data-i18n="tabDash">儀表板</button>
             <button onclick="switchTab('logs')" id="tab-logs" class="py-2 px-4 text-slate-400 hover:text-slate-200 border-b-2 border-transparent focus:outline-none transition-colors" data-i18n="tabLog">系統日誌 & 匯出</button>
@@ -83,65 +76,133 @@
         <!-- Dashboard View -->
         <div id="view-dashboard">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                <!-- Data -->
-                <div class="lg:col-span-2 bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex flex-col justify-between">
-                    <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-2">
-                        <h3 class="text-slate-400 text-sm uppercase font-bold tracking-wider" data-i18n="monitorTitle">環境監測</h3>
-                        <span class="text-xs text-slate-500 font-mono"><span data-i18n="updated">更新:</span> <span id="lastUpdate" class="text-white">--</span></span>
+                
+                <!-- 左側欄：環境監測 + 趨勢圖 (Flex Column) -->
+                <div class="lg:col-span-2 flex flex-col gap-6">
+                    
+                    <!-- 1. 數據區 -->
+                    <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+                        <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-2">
+                            <h3 class="text-slate-400 text-sm uppercase font-bold tracking-wider" data-i18n="monitorTitle">環境監測</h3>
+                            <span class="text-xs text-slate-500 font-mono"><span data-i18n="updated">更新:</span> <span id="lastUpdate" class="text-white">--</span></span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- 溫度 -->
+                            <div id="cardTemp" class="bg-slate-700/30 p-5 rounded-lg text-center border border-transparent transition-all duration-500 hover:bg-slate-700/50">
+                                <i class="fa-solid fa-temperature-half text-3xl text-red-400 mb-3"></i>
+                                <div class="text-5xl font-bold text-white mb-1 tracking-tighter" id="tempVal">--</div>
+                                <div class="text-xs text-slate-400 font-bold uppercase"><span data-i18n="temp">溫度</span> °C</div>
+                            </div>
+                            <!-- 濕度 -->
+                            <div id="cardHum" class="bg-slate-700/30 p-5 rounded-lg text-center border border-transparent transition-all duration-500 hover:bg-slate-700/50">
+                                <i class="fa-solid fa-droplet text-3xl text-cyan-400 mb-3"></i>
+                                <div class="text-5xl font-bold text-white mb-1 tracking-tighter" id="humVal">--</div>
+                                <div class="text-xs text-slate-400 font-bold uppercase"><span data-i18n="hum">濕度</span> %</div>
+                            </div>
+                            <!-- 土壤 -->
+                            <div id="cardSoil" class="bg-slate-700/30 p-5 rounded-lg text-center border border-transparent transition-all duration-500 hover:bg-slate-700/50">
+                                <i class="fa-solid fa-seedling text-3xl text-green-400 mb-3"></i>
+                                <div class="text-5xl font-bold text-white mb-1 tracking-tighter" id="soilVal">--</div>
+                                <div class="text-xs text-slate-400 font-bold uppercase"><span data-i18n="soil">土壤</span> %</div>
+                                <div class="mt-2 text-xs text-slate-500 bg-slate-900/60 rounded-full py-1 px-2 inline-block">
+                                    <span data-i18n="status">狀態</span>: <span id="soilStatus" class="text-slate-300 font-bold">--</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div id="cardTemp" class="bg-slate-700/30 p-5 rounded-lg text-center border border-transparent transition-all duration-500 hover:bg-slate-700/50"><i class="fa-solid fa-temperature-half text-3xl text-red-400 mb-3"></i><div class="text-5xl font-bold text-white mb-1 tracking-tighter" id="tempVal">--</div><div class="text-xs text-slate-400 font-bold uppercase"><span data-i18n="temp">溫度</span> °C</div></div>
-                        <div id="cardHum" class="bg-slate-700/30 p-5 rounded-lg text-center border border-transparent transition-all duration-500 hover:bg-slate-700/50"><i class="fa-solid fa-droplet text-3xl text-cyan-400 mb-3"></i><div class="text-5xl font-bold text-white mb-1 tracking-tighter" id="humVal">--</div><div class="text-xs text-slate-400 font-bold uppercase"><span data-i18n="hum">濕度</span> %</div></div>
-                        <div id="cardSoil" class="bg-slate-700/30 p-5 rounded-lg text-center border border-transparent transition-all duration-500 hover:bg-slate-700/50"><i class="fa-solid fa-seedling text-3xl text-green-400 mb-3"></i><div class="text-5xl font-bold text-white mb-1 tracking-tighter" id="soilVal">--</div><div class="text-xs text-slate-400 font-bold uppercase"><span data-i18n="soil">土壤</span> %</div><div class="mt-2 text-xs text-slate-500 bg-slate-900/60 rounded-full py-1 px-2 inline-block"><span data-i18n="status">狀態</span>: <span id="soilStatus" class="text-slate-300 font-bold">--</span></div></div>
+
+                    <!-- 2. 圖表區 -->
+                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 h-80 relative shadow-lg">
+                        <h3 id="chartTitleText" class="text-slate-400 text-sm uppercase font-bold mb-2 absolute top-4 left-6">趨勢分析</h3>
+                        <div class="w-full h-full pb-2 pt-6">
+                            <canvas id="historyChart"></canvas>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Control -->
-                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex flex-col">
-                    <h3 class="text-slate-400 text-sm uppercase font-bold mb-6 border-b border-slate-700 pb-2" data-i18n="controlTitle">系統狀態</h3>
-                    <div class="space-y-4 flex-grow">
-                        <button onclick="sendCommand('STOP', 99)" class="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold py-3 rounded-lg shadow-lg flex items-center justify-center gap-2 transition transform active:scale-95 group border border-red-500">
-                            <i class="fa-solid fa-power-off text-xl group-hover:animate-pulse"></i> <span class="text-lg" data-i18n="btnStop">緊急停機 STOP</span>
-                        </button>
-                        <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-purple-500/50">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3"><div id="modeInd" class="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e] transition-all duration-300"></div><div class="flex flex-col"><span class="text-sm font-bold text-purple-200" data-i18n="mode">運作模式</span><span class="text-[10px] text-slate-500" id="modeText">Auto</span></div></div>
-                                <div class="flex gap-1"><button onclick="sendCommand('AUTO_ON', 0)" class="bg-green-600 hover:bg-green-500 active:scale-95 text-white px-2 py-1.5 rounded text-xs font-bold transition shadow" data-i18n="btnAuto">Auto</button><button onclick="sendCommand('AUTO_OFF', 0)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-2 py-1.5 rounded text-xs font-bold transition shadow" data-i18n="btnMan">Manual</button></div>
-                            </div>
-                        </div>
-                        <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700 flex items-center justify-between">
-                            <div class="flex items-center gap-3"><i id="sensorIcon" class="fa-solid fa-heart-pulse text-slate-500 text-lg"></i><span class="text-sm font-bold text-slate-300" data-i18n="sensorHealth">感測器</span></div>
-                            <span id="sensorText" class="text-xs font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded">OK</span>
-                        </div>
-                        <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-blue-500/50">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3"><div id="pumpInd" class="w-3 h-3 rounded-full bg-slate-600 transition-all duration-500"></div><div class="flex flex-col"><span class="text-sm font-bold text-blue-200" data-i18n="pump">水泵</span><span class="text-[10px] text-slate-500" id="pumpStatusText">Auto Control</span></div></div>
-                                <div class="flex gap-1"><button onclick="sendCommand('LED1_ON', 1)" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">ON</button><button onclick="sendCommand('LED1_OFF', 1)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">OFF</button></div>
-                            </div>
-                        </div>
-                        <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-yellow-500/50">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3"><div id="fertInd" class="w-3 h-3 rounded-full bg-slate-600 transition-all duration-500"></div><div class="flex flex-col"><span class="text-sm font-bold text-yellow-200" data-i18n="fert">施肥</span><span class="text-[10px] text-slate-500" id="fertStatusText">Timer: 08:00</span></div></div>
-                                <div class="flex gap-1"><button onclick="sendCommand('LED2_ON', 2)" class="bg-yellow-600 hover:bg-yellow-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">ON</button><button onclick="sendCommand('LED2_OFF', 2)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">OFF</button></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="cmdStatus" class="text-xs text-center text-slate-500 mt-4 h-4 font-mono tracking-wide" data-i18n="waiting">System Ready</div>
-                </div>
-            </div>
+                <!-- 右側欄：控制區 -->
+                <div class="lg:col-span-1">
+                    <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex flex-col h-full">
+                        <h3 class="text-slate-400 text-sm uppercase font-bold mb-6 border-b border-slate-700 pb-2" data-i18n="controlTitle">系統狀態</h3>
+                        
+                        <div class="space-y-4 flex-grow">
+                            <!-- 緊急停機 -->
+                            <button onclick="sendCommand('STOP', 99)" class="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold py-3 rounded-lg shadow-lg flex items-center justify-center gap-2 transition transform active:scale-95 group border border-red-500">
+                                <i class="fa-solid fa-power-off text-xl group-hover:animate-pulse"></i> 
+                                <span class="text-lg" data-i18n="btnStop">緊急停機 STOP</span>
+                            </button>
 
-            <!-- Chart -->
-            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 h-80 relative shadow-lg">
-                <h3 id="chartTitleText" class="text-slate-400 text-sm uppercase font-bold mb-2 absolute top-4 left-6">趨勢分析</h3>
-                <div class="w-full h-full pb-2 pt-6"><canvas id="historyChart"></canvas></div>
+                            <!-- 運作模式 -->
+                            <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-purple-500/50">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div id="modeInd" class="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e] transition-all duration-300"></div>
+                                        <div class="flex flex-col">
+                                            <span class="text-sm font-bold text-purple-200" data-i18n="mode">運作模式</span>
+                                            <span class="text-[10px] text-slate-500" id="modeText">Auto</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <button onclick="sendCommand('AUTO_ON', 0)" class="bg-green-600 hover:bg-green-500 active:scale-95 text-white px-2 py-1.5 rounded text-xs font-bold transition shadow" data-i18n="btnAuto">Auto</button>
+                                        <button onclick="sendCommand('AUTO_OFF', 0)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-2 py-1.5 rounded text-xs font-bold transition shadow" data-i18n="btnMan">Manual</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 感測器 -->
+                            <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <i id="sensorIcon" class="fa-solid fa-heart-pulse text-slate-500 text-lg"></i>
+                                    <span class="text-sm font-bold text-slate-300" data-i18n="sensorHealth">感測器</span>
+                                </div>
+                                <span id="sensorText" class="text-xs font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded">OK</span>
+                            </div>
+
+                            <!-- 水泵 -->
+                            <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-blue-500/50">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div id="pumpInd" class="w-3 h-3 rounded-full bg-slate-600 transition-all duration-500"></div>
+                                        <div class="flex flex-col">
+                                            <span class="text-sm font-bold text-blue-200" data-i18n="pump">水泵</span>
+                                            <span class="text-[10px] text-slate-500" id="pumpStatusText">Auto Control</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <button onclick="sendCommand('LED1_ON', 1)" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">ON</button>
+                                        <button onclick="sendCommand('LED1_OFF', 1)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">OFF</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 施肥 -->
+                            <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-yellow-500/50">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div id="fertInd" class="w-3 h-3 rounded-full bg-slate-600 transition-all duration-500"></div>
+                                        <div class="flex flex-col">
+                                            <span class="text-sm font-bold text-yellow-200" data-i18n="fert">施肥</span>
+                                            <span class="text-[10px] text-slate-500" id="fertStatusText">Timer: 08:00</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <button onclick="sendCommand('LED2_ON', 2)" class="bg-yellow-600 hover:bg-yellow-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">ON</button>
+                                        <button onclick="sendCommand('LED2_OFF', 2)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">OFF</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="cmdStatus" class="text-xs text-center text-slate-500 mt-4 h-4 font-mono tracking-wide" data-i18n="waiting">System Ready</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- 頁面 2: 系統日誌 & 資料匯出 -->
+        <!-- View 2: Logs -->
         <div id="view-logs" class="hidden h-full">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-                
-                <!-- 左側：日誌 (佔 2/3) -->
+                <!-- Log Console -->
                 <div class="lg:col-span-2 bg-black p-4 rounded-lg border border-slate-700 font-mono text-xs h-[30rem] overflow-y-scroll shadow-inner relative">
                     <div class="text-green-400 font-bold mb-2 sticky top-0 bg-black/90 p-1 border-b border-green-900/50 flex justify-between">
                         <span>>>> System Diagnostic Log</span>
@@ -150,13 +211,25 @@
                     <div id="debugLog" class="text-slate-300 space-y-1"></div>
                 </div>
 
-                <!-- 右側：進階匯出 (佔 1/3) -->
+                <!-- Export Panel -->
                 <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg h-fit">
                     <h3 class="text-slate-400 text-sm uppercase font-bold mb-4 border-b border-slate-700 pb-2 flex items-center">
-                        <i class="fa-solid fa-file-csv mr-2"></i> <span data-i18n="rangeTitle">指定時間區間匯出</span>
+                        <i class="fa-solid fa-file-csv mr-2"></i> <span data-i18n="rangeTitle">資料匯出設定</span>
                     </h3>
                     
                     <div class="space-y-4">
+                        <!-- Quick Read -->
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1 font-bold" data-i18n="dataLimitLabel">快速讀取/匯出筆數 (10-8000)</label>
+                            <div class="flex gap-2">
+                                <input type="number" id="dataLimit" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition text-white" min="10" max="8000" value="50" onchange="updateLimit()">
+                                <button onclick="updateLimit()" class="bg-slate-700 hover:bg-slate-600 px-3 rounded text-white"><i class="fa-solid fa-rotate"></i></button>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-slate-700 my-2"></div>
+
+                        <!-- Date Range -->
                         <div>
                             <label class="block text-xs text-slate-400 mb-1" data-i18n="startDate">開始時間</label>
                             <input type="datetime-local" id="startDate" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none text-white transition">
@@ -170,19 +243,14 @@
                             <i class="fa-solid fa-cloud-arrow-down text-lg"></i> 
                             <span data-i18n="btnExportRange">下載區間報表</span>
                         </button>
-
-                        <div class="text-[10px] text-slate-500 mt-4 leading-relaxed border-t border-slate-700 pt-3">
-                            * 注意：ThingSpeak API 單次限制約 8000 筆。若區間過大請分批下載。<br>
-                            * Note: API limit ~8000 feeds per request.
-                        </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </main>
 
-    <footer class="text-center p-4 text-slate-600 text-xs border-t border-slate-800 mt-4">ESP32 Smart Farm Project &copy; 2025 本系統由唐貫瀚獨立製作</footer>
+    <footer class="text-center p-4 text-slate-600 text-xs border-t border-slate-800 mt-4">ESP32 Smart Farm Project &copy; 2025 本系統由唐貫瀚獨立製作 | <a href="https://github.com/Vincent40312/esp32-iot-monitor/tree/main" target="_blank" class="text-slate-500 hover:text-green-500 transition"><i class="fa-brands fa-github mr-1"></i>GitHub</a>
+    </footer>
 
     <script>
         let intervalId, myChart, currentFeeds = [], curLang = 'zh', statusTimeout, currentLimit = 50;
@@ -197,11 +265,11 @@
 
         const i18n = {
             zh: {
-                navTitle: "智慧農場自動化系統", exportBtn: "匯出", setupTitle: "連線設定", saveBtn: "儲存設定", monitorTitle: "環境即時監測", updated: "最後更新:", temp: "溫度", hum: "濕度", soil: "土壤濕度", status: "狀態", statusDry: "嚴重缺水", statusWet: "過濕", statusOk: "適中", controlTitle: "自動化運作狀態", pump: "水泵 (自動補水)", fert: "施肥機 (定時)", sensorHealth: "感測器健康度", chartTitle: "歷史趨勢", waiting: "系統待命中", cmdSending: "指令發送中...", cmdSent: "指令已發送", cmdFail: "發送失敗", errorSens: "感測器異常", normal: "正常", alertLock: "警報：水泵運轉超時，系統已強制鎖定！", alertSens: "警報：感測器讀取失敗，自動化已暫停！", exportError: "無數據可匯出", fillAlert: "請完整填寫 Channel ID", tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key", tabDash: "儀表板", tabLog: "系統日誌 & 匯出", dataLimitLabel: "讀取/匯出筆數 (10-8000)", mode: "運作模式", btnAuto: "自動", btnMan: "手動", modeAuto: "自動 (Auto)", modeMan: "手動 (Manual)", btnStop: "緊急停機 STOP", stopSent: "緊急停機指令已送出！", timeoutMsg: "系統端連線異常：超過 5 分鐘未收到數據", statusTimeout: "連線異常",
-                overload: "過載跳脫 (Trip)", alertOverloadPump: "警報：水泵積熱電驛跳脫 (Overload)！", alertOverloadFert: "警報：施肥機積熱電驛跳脫 (Overload)！", rangeTitle: "指定時間區間匯出", startDate: "開始時間", endDate: "結束時間", btnExportRange: "下載區間報表", rangeAlert: "請選擇開始與結束時間"
+                navTitle: "智慧農場自動化系統", exportBtn: "匯出", setupTitle: "連線設定", saveBtn: "儲存設定", monitorTitle: "環境即時監測", updated: "最後更新:", temp: "溫度", hum: "濕度", soil: "土壤濕度", status: "狀態", statusDry: "嚴重缺水", statusWet: "過濕", statusOk: "適中", controlTitle: "自動化運作狀態", pump: "水泵 (自動補水)", fert: "施肥機 (定時)", sensorHealth: "感測器健康度", chartTitle: "歷史趨勢", waiting: "系統待命中", cmdSending: "指令發送中...", cmdSent: "指令已發送", cmdFail: "發送失敗", errorSens: "感測器異常", normal: "正常", alertLock: "警報：水泵運轉超時，系統已強制鎖定！", alertSens: "警報：感測器讀取失敗，自動化已暫停！", exportError: "無數據可匯出", fillAlert: "請完整填寫 Channel ID", tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key", tabDash: "儀表板", tabLog: "系統日誌", dataLimitLabel: "讀取/匯出筆數 (10-8000)", mode: "運作模式", btnAuto: "自動", btnMan: "手動", modeAuto: "自動 (Auto)", modeMan: "手動 (Manual)", btnStop: "緊急停機 STOP", stopSent: "緊急停機指令已送出！", timeoutMsg: "系統端連線異常：超過 5 分鐘未收到數據", statusTimeout: "連線異常",
+                overload: "過載跳脫 (Trip)", alertOverloadPump: "警報：水泵積熱電驛跳脫 (Overload)！", alertOverloadFert: "警報：施肥機積熱電驛跳脫 (Overload)！", rangeTitle: "資料匯出設定", startDate: "開始時間", endDate: "結束時間", btnExportRange: "下載區間報表", rangeAlert: "請選擇開始與結束時間"
             },
             en: {
-                navTitle: "Smart Farm Automation", exportBtn: "Export", setupTitle: "Connection Setup", saveBtn: "Save Settings", monitorTitle: "Live Environment", updated: "Updated:", temp: "Temp", hum: "Humidity", soil: "Soil Moisture", status: "Status", statusDry: "Very Dry", statusWet: "Wet", statusOk: "Good", controlTitle: "System Status", pump: "Water Pump", fert: "Fertilizer", sensorHealth: "Sensor Health", chartTitle: "Trend Analysis", waiting: "System Ready", cmdSending: "Sending...", cmdSent: "Command Sent", cmdFail: "Failed", errorSens: "Sensor Error", normal: "Normal", alertLock: "ALERT: Pump timeout! System locked.", alertSens: "ALERT: Sensor failure detected!", exportError: "No data", fillAlert: "Please fill in Channel ID", tbAlert: "Please fill in TalkBack ID and Key", tabDash: "Dashboard", tabLog: "System Logs & Export", dataLimitLabel: "Max Records (10-8000)", mode: "Operation Mode", btnAuto: "Auto", btnMan: "Manual", modeAuto: "Auto", modeMan: "Manual", btnStop: "EMERGENCY STOP", stopSent: "STOP command sent!", timeoutMsg: "Connection Timeout: No data for 5 mins!", statusTimeout: "Conn Error", overload: "OVERLOAD TRIP", alertOverloadPump: "ALERT: Water Pump Overload Trip!", alertOverloadFert: "ALERT: Fertilizer Overload Trip!", rangeTitle: "Export by Date Range", startDate: "Start Date", endDate: "End Date", btnExportRange: "Download Range CSV", rangeAlert: "Please select start and end dates"
+                navTitle: "Smart Farm Automation", exportBtn: "Export", setupTitle: "Connection Setup", saveBtn: "Save Settings", monitorTitle: "Live Environment", updated: "Updated:", temp: "Temp", hum: "Humidity", soil: "Soil Moisture", status: "Status", statusDry: "Very Dry", statusWet: "Wet", statusOk: "Good", controlTitle: "System Status", pump: "Water Pump", fert: "Fertilizer", sensorHealth: "Sensor Health", chartTitle: "Trend Analysis", waiting: "System Ready", cmdSending: "Sending...", cmdSent: "Command Sent", cmdFail: "Failed", errorSens: "Sensor Error", normal: "Normal", alertLock: "ALERT: Pump timeout! System locked.", alertSens: "ALERT: Sensor failure detected!", exportError: "No data", fillAlert: "Please fill in Channel ID", tbAlert: "Please fill in TalkBack ID and Key", tabDash: "Dashboard", tabLog: "System Logs", dataLimitLabel: "Max Records (10-8000)", mode: "Operation Mode", btnAuto: "Auto", btnMan: "Manual", modeAuto: "Auto", modeMan: "Manual", btnStop: "EMERGENCY STOP", stopSent: "STOP command sent!", timeoutMsg: "Connection Timeout: No data for 5 mins!", statusTimeout: "Conn Error", overload: "OVERLOAD TRIP", alertOverloadPump: "ALERT: Water Pump Overload Trip!", alertOverloadFert: "ALERT: Fertilizer Overload Trip!", rangeTitle: "Data Export Settings", startDate: "Start Date", endDate: "End Date", btnExportRange: "Download Range CSV", rangeAlert: "Please select start and end dates"
             }
         };
 
@@ -221,7 +289,6 @@
         }, 1000);
 
         function toggleLanguage() { curLang = curLang === 'zh' ? 'en' : 'zh'; document.getElementById('langBtnText').innerText = curLang === 'zh' ? 'EN' : '中'; updateInterfaceText(); }
-        
         function updateInterfaceText() {
             document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (i18n[curLang][key]) el.innerText = i18n[curLang][key]; });
             if(myChart) { myChart.data.datasets[0].label = i18n[curLang].temp; myChart.data.datasets[1].label = i18n[curLang].hum; myChart.data.datasets[2].label = i18n[curLang].soil; myChart.update(); }
@@ -232,10 +299,17 @@
             }
             if(currentFeeds.length > 0) updateUI(currentFeeds[currentFeeds.length-1]);
         }
-
         function updateDynamicText() {
             document.getElementById('exportBtnText').innerText = `${i18n[curLang].exportBtn} (${currentLimit})`;
             document.getElementById('chartTitleText').innerText = `${i18n[curLang].chartTitle} (${currentLimit})`;
+        }
+        function updateLimit() {
+            const val = parseInt(document.getElementById('dataLimit').value);
+            currentLimit = Math.max(10, Math.min(8000, val));
+            localStorage.setItem('conf_dataLimit', currentLimit);
+            updateDynamicText();
+            log(`筆數設定更新為: ${currentLimit}，重新讀取中...`, "info");
+            fetchSensorData();
         }
 
         function switchTab(tab) {
@@ -258,11 +332,11 @@
             const cid = document.getElementById('channelId').value;
             if(!cid) return alert(i18n[curLang].fillAlert);
             ['channelId','readKey','tbId','tbKey'].forEach(id => localStorage.setItem('conf_'+id, document.getElementById(id).value));
-            currentLimit = Math.max(10, Math.min(8000, parseInt(document.getElementById('dataLimit').value)));
-            localStorage.setItem('conf_dataLimit', currentLimit);
+            // dataLimit is loaded here just in case, but usually handled by updateLimit
+            if(localStorage.getItem('conf_dataLimit')) currentLimit = parseInt(localStorage.getItem('conf_dataLimit'));
             updateDynamicText();
             document.getElementById('setupPanel').classList.add('hidden');
-            log(`設定已儲存 (讀取筆數: ${currentLimit})`, "success");
+            log(`設定已儲存`, "success");
             setConnStatus("connecting");
             startLoop();
         }
@@ -301,57 +375,6 @@
                     myChart.update();
                 } else { log("無數據", "warn"); }
             } catch(e) { console.error(e); log(`讀取失敗: ${e.message}`, "error"); setConnStatus("error"); }
-        }
-
-        // --- 新增：日期區間匯出功能 ---
-        async function exportDateRange() {
-            const cid = localStorage.getItem('conf_channelId');
-            const rkey = localStorage.getItem('conf_readKey');
-            const start = document.getElementById('startDate').value;
-            const end = document.getElementById('endDate').value;
-
-            if(!cid || !start || !end) return alert(i18n[curLang].rangeAlert);
-
-            // 格式化日期：YYYY-MM-DD HH:MM:SS -> URL Encoding
-            const fmtStart = start.replace('T', '%20') + ':00';
-            const fmtEnd = end.replace('T', '%20') + ':00';
-
-            log(`請求匯出區間：${fmtStart} 至 ${fmtEnd}`, "info");
-
-            let url = `https://api.thingspeak.com/channels/${cid}/feeds.json?start=${fmtStart}&end=${fmtEnd}`;
-            if(rkey) url += `&api_key=${rkey}`;
-
-            try {
-                const res = await fetch(url);
-                if(!res.ok) throw new Error("API Error " + res.status);
-                const data = await res.json();
-                const rangeFeeds = data.feeds;
-
-                if(rangeFeeds.length === 0) {
-                    alert(i18n[curLang].exportError);
-                    log("該區間無數據", "warn");
-                    return;
-                }
-
-                // 產生 CSV
-                let csv = "data:text/csv;charset=utf-8,Time,Temp,Humidity,Soil,Status\n";
-                rangeFeeds.forEach(row => {
-                    const t = new Date(row.created_at).toLocaleString();
-                    csv += `${t},${row.field1},${row.field2},${row.field3},${row.field4}\n`;
-                });
-                const link = document.createElement("a");
-                link.setAttribute("href", encodeURI(csv));
-                link.setAttribute("download", `farm_export_${start.split('T')[0]}_to_${end.split('T')[0]}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                log(`區間匯出成功 (${rangeFeeds.length}筆)`, "success");
-
-            } catch(e) {
-                console.error(e);
-                log("匯出失敗：" + e.message, "error");
-                alert("匯出失敗，請檢查日期格式或 API Key");
-            }
         }
 
         function updateUI(d) {
@@ -503,6 +526,55 @@
             currentFeeds.forEach(row => { const t = new Date(row.created_at).toLocaleString(); csv += `${t},${row.field1},${row.field2},${row.field3},${row.field4}\n`; });
             const link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", `farm_data_${new Date().toISOString().slice(0,10).replace(/-/g,"")}.csv`);
             document.body.appendChild(link); link.click(); document.body.removeChild(link); log(`已匯出 CSV (${currentFeeds.length}筆)`, "success");
+        }
+
+        // --- 新增：日期區間匯出功能 ---
+        async function exportDateRange() {
+            const cid = localStorage.getItem('conf_channelId');
+            const rkey = localStorage.getItem('conf_readKey');
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+
+            if(!cid || !start || !end) return alert(i18n[curLang].rangeAlert);
+
+            const fmtStart = start.replace('T', '%20') + ':00';
+            const fmtEnd = end.replace('T', '%20') + ':00';
+
+            log(`請求匯出區間：${fmtStart} 至 ${fmtEnd}`, "info");
+
+            let url = `https://api.thingspeak.com/channels/${cid}/feeds.json?start=${fmtStart}&end=${fmtEnd}`;
+            if(rkey) url += `&api_key=${rkey}`;
+
+            try {
+                const res = await fetch(url);
+                if(!res.ok) throw new Error("API Error " + res.status);
+                const data = await res.json();
+                const rangeFeeds = data.feeds;
+
+                if(rangeFeeds.length === 0) {
+                    alert(i18n[curLang].exportError);
+                    log("該區間無數據", "warn");
+                    return;
+                }
+
+                let csv = "data:text/csv;charset=utf-8,Time,Temp,Humidity,Soil,Status\n";
+                rangeFeeds.forEach(row => {
+                    const t = new Date(row.created_at).toLocaleString();
+                    csv += `${t},${row.field1},${row.field2},${row.field3},${row.field4}\n`;
+                });
+                const link = document.createElement("a");
+                link.setAttribute("href", encodeURI(csv));
+                link.setAttribute("download", `farm_export_${start.split('T')[0]}_to_${end.split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                log(`區間匯出成功 (${rangeFeeds.length}筆)`, "success");
+
+            } catch(e) {
+                console.error(e);
+                log("匯出失敗：" + e.message, "error");
+                alert("匯出失敗，請檢查日期格式或 API Key");
+            }
         }
 
         function startLoop() { if(intervalId) clearInterval(intervalId); fetchSensorData(); intervalId = setInterval(fetchSensorData, 10000); }
