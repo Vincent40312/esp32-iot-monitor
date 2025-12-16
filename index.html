@@ -133,13 +133,13 @@
                         </div>
                         <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-blue-500/50">
                             <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3"><div id="pumpInd" class="w-3 h-3 rounded-full bg-slate-600 transition-all duration-500"></div><div class="flex flex-col"><span class="text-sm font-bold text-blue-200" data-i18n="pump">水泵</span><span class="text-[10px] text-slate-500">Auto Control</span></div></div>
+                                <div class="flex items-center gap-3"><div id="pumpInd" class="w-3 h-3 rounded-full bg-slate-600 transition-all duration-500"></div><div class="flex flex-col"><span class="text-sm font-bold text-blue-200" data-i18n="pump">水泵</span><span class="text-[10px] text-slate-500" id="pumpStatusText">Auto Control</span></div></div>
                                 <div class="flex gap-1"><button onclick="sendCommand('LED1_ON', 1)" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">ON</button><button onclick="sendCommand('LED1_OFF', 1)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">OFF</button></div>
                             </div>
                         </div>
                         <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-yellow-500/50">
                             <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3"><div id="fertInd" class="w-3 h-3 rounded-full bg-slate-600 transition-all duration-500"></div><div class="flex flex-col"><span class="text-sm font-bold text-yellow-200" data-i18n="fert">施肥</span><span class="text-[10px] text-slate-500">Timer: 08:00</span></div></div>
+                                <div class="flex items-center gap-3"><div id="fertInd" class="w-3 h-3 rounded-full bg-slate-600 transition-all duration-500"></div><div class="flex flex-col"><span class="text-sm font-bold text-yellow-200" data-i18n="fert">施肥</span><span class="text-[10px] text-slate-500" id="fertStatusText">Timer: 08:00</span></div></div>
                                 <div class="flex gap-1"><button onclick="sendCommand('LED2_ON', 2)" class="bg-yellow-600 hover:bg-yellow-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">ON</button><button onclick="sendCommand('LED2_OFF', 2)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">OFF</button></div>
                             </div>
                         </div>
@@ -182,7 +182,7 @@
 
         const i18n = {
             zh: {
-                navTitle: "智慧農場自動化系統", exportBtn: "匯出", setupTitle: "連線設定", saveBtn: "儲存設定", monitorTitle: "環境即時監測", updated: "最後更新:", temp: "溫度", hum: "濕度", soil: "土壤濕度", status: "狀態", statusDry: "嚴重缺水", statusWet: "過濕", statusOk: "適中", controlTitle: "自動化運作狀態", pump: "水泵 (自動補水)", fert: "施肥機 (定時)", sensorHealth: "感測器健康度", chartTitle: "歷史趨勢", waiting: "系統待命中", cmdSending: "指令發送中...", cmdSent: "指令已發送", cmdFail: "發送失敗", errorSens: "感測器異常", normal: "正常", alertLock: "警報：水泵運轉超時，系統已強制鎖定！", alertSens: "警報：感測器讀取失敗，自動化已暫停！", exportError: "無數據可匯出", fillAlert: "請完整填寫 Channel ID", tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key", tabDash: "儀表板", tabLog: "系統日誌", dataLimitLabel: "快速讀取/匯出筆數 (10-8000)", mode: "運作模式", btnAuto: "自動", btnMan: "手動", modeAuto: "自動 (Auto)", modeMan: "手動 (Manual)", btnStop: "緊急停機 STOP", stopSent: "緊急停機指令已送出！", timeoutMsg: "系統端連線異常：超過 5 分鐘未收到數據", statusTimeout: "連線異常", overload: "過載跳脫 (Trip)", alertOverloadPump: "警報：水泵積熱電驛跳脫 (Overload)！", alertOverloadFert: "警報：施肥機積熱電驛跳脫 (Overload)！", rangeTitle: "指定時間區間匯出", startDate: "開始時間", endDate: "結束時間", btnExportRange: "下載區間報表", rangeAlert: "請選擇開始與結束時間"
+                navTitle: "智慧農場自動化系統", exportBtn: "匯出", setupTitle: "連線設定", saveBtn: "儲存並連線", monitorTitle: "環境即時監測", updated: "最後更新:", temp: "溫度", hum: "濕度", soil: "土壤濕度", status: "狀態", statusDry: "嚴重缺水", statusWet: "過濕", statusOk: "適中", controlTitle: "自動化運作狀態", pump: "水泵 (自動補水)", fert: "施肥機 (定時)", sensorHealth: "感測器健康度", chartTitle: "歷史趨勢", waiting: "系統待命中", cmdSending: "指令發送中...", cmdSent: "指令已發送", cmdFail: "發送失敗", errorSens: "感測器異常", normal: "正常", alertLock: "警報：水泵運轉超時，系統已強制鎖定！", alertSens: "警報：感測器讀取失敗，自動化已暫停！", exportError: "無數據可匯出", fillAlert: "請完整填寫 Channel ID", tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key", tabDash: "儀表板", tabLog: "系統日誌", dataLimitLabel: "快速讀取/匯出筆數 (10-8000)", mode: "運作模式", btnAuto: "自動", btnMan: "手動", modeAuto: "自動 (Auto)", modeMan: "手動 (Manual)", btnStop: "緊急停機 STOP", stopSent: "緊急停機指令已送出！", timeoutMsg: "系統端連線異常：超過 5 分鐘未收到數據", statusTimeout: "連線異常", overload: "過載跳脫 (Trip)", alertOverloadPump: "警報：水泵積熱電驛跳脫 (Overload)！", alertOverloadFert: "警報：施肥機積熱電驛跳脫 (Overload)！", rangeTitle: "指定時間區間匯出", startDate: "開始時間", endDate: "結束時間", btnExportRange: "下載區間報表", rangeAlert: "請選擇開始與結束時間"
             },
             en: {
                 navTitle: "Smart Farm Automation", exportBtn: "Export", setupTitle: "Connection Setup", saveBtn: "Save Settings", monitorTitle: "Live Environment", updated: "Updated:", temp: "Temp", hum: "Humidity", soil: "Soil Moisture", status: "Status", statusDry: "Very Dry", statusWet: "Wet", statusOk: "Good", controlTitle: "System Status", pump: "Water Pump", fert: "Fertilizer", sensorHealth: "Sensor Health", chartTitle: "Trend Analysis", waiting: "System Ready", cmdSending: "Sending...", cmdSent: "Command Sent", cmdFail: "Failed", errorSens: "Sensor Error", normal: "Normal", alertLock: "ALERT: Pump timeout! System locked.", alertSens: "ALERT: Sensor failure detected!", exportError: "No data", fillAlert: "Please fill in Channel ID", tbAlert: "Please fill in TalkBack ID and Key", tabDash: "Dashboard", tabLog: "System Logs", dataLimitLabel: "Max Records (10-8000)", mode: "Operation Mode", btnAuto: "Auto", btnMan: "Manual", modeAuto: "Auto", modeMan: "Manual", btnStop: "EMERGENCY STOP", stopSent: "STOP command sent!", timeoutMsg: "Connection Timeout: No data for 5 mins!", statusTimeout: "Conn Error", overload: "OVERLOAD TRIP", alertOverloadPump: "ALERT: Water Pump Overload Trip!", alertOverloadFert: "ALERT: Fertilizer Overload Trip!", rangeTitle: "Export by Date Range", startDate: "Start Date", endDate: "End Date", btnExportRange: "Download Range CSV", rangeAlert: "Please select start and end dates"
@@ -359,8 +359,15 @@
 
             const modeInd = document.getElementById('modeInd');
             const modeText = document.getElementById('modeText');
-            if (isAuto) { modeInd.className = "w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"; modeText.innerText = i18n[curLang].modeAuto; modeText.className = "text-[10px] text-green-400 font-bold"; } 
-            else { modeInd.className = "w-3 h-3 rounded-full bg-orange-500 shadow-[0_0_10px_#f97316]"; modeText.innerText = i18n[curLang].modeMan; modeText.className = "text-[10px] text-orange-400 font-bold"; }
+            if (isAuto) {
+                modeInd.className = "w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]";
+                modeText.innerText = i18n[curLang].modeAuto;
+                modeText.className = "text-[10px] text-green-400 font-bold";
+            } else {
+                modeInd.className = "w-3 h-3 rounded-full bg-orange-500 shadow-[0_0_10px_#f97316]";
+                modeText.innerText = i18n[curLang].modeMan;
+                modeText.className = "text-[10px] text-orange-400 font-bold";
+            }
 
             const sensTxt = document.getElementById('sensorText');
             if (isErr) { sensTxt.innerText = i18n[curLang].errorSens; sensTxt.className = "text-xs font-bold text-white bg-red-600 px-2 py-1 rounded animate-pulse"; addAlert("sensErr", i18n[curLang].alertSens); } 
