@@ -51,8 +51,7 @@
     </nav>
 
     <main class="container mx-auto p-4 max-w-6xl flex-grow">
-        
-        <!-- 設定面板 -->
+        <!-- Setup Panel -->
         <div id="setupPanel" class="bg-slate-800 p-6 rounded-lg mb-6 border border-green-500/50 shadow-2xl hidden transform transition-all">
             <h3 class="font-bold mb-4 text-green-300 text-lg flex items-center"><i class="fa-solid fa-sliders mr-2"></i> <span data-i18n="setupTitle">系統設定</span></h3>
             <div class="grid gap-4 md:grid-cols-2">
@@ -65,19 +64,17 @@
             <button onclick="saveSettings()" class="mt-4 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-bold w-full transition shadow-lg" data-i18n="saveBtn">儲存設定</button>
         </div>
 
-        <!-- 分頁 -->
         <div class="flex space-x-1 mb-6 border-b border-slate-700">
             <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-2 px-4 text-green-400 border-b-2 border-green-400 font-bold focus:outline-none transition-colors" data-i18n="tabDash">儀表板</button>
             <button onclick="switchTab('logs')" id="tab-logs" class="py-2 px-4 text-slate-400 hover:text-slate-200 border-b-2 border-transparent focus:outline-none transition-colors" data-i18n="tabLog">系統日誌</button>
         </div>
 
-        <!-- 警報容器 -->
         <div id="alertContainer" class="space-y-3 mb-6"></div>
 
-        <!-- Dashboard View -->
+        <!-- Dashboard -->
         <div id="view-dashboard">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                <!-- 數據 -->
+                <!-- Data -->
                 <div class="lg:col-span-2 bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex flex-col justify-between">
                     <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-2">
                         <h3 class="text-slate-400 text-sm uppercase font-bold tracking-wider" data-i18n="monitorTitle">環境監測</h3>
@@ -90,19 +87,17 @@
                     </div>
                 </div>
 
-                <!-- 控制 -->
+                <!-- Control -->
                 <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex flex-col">
                     <h3 class="text-slate-400 text-sm uppercase font-bold mb-6 border-b border-slate-700 pb-2" data-i18n="controlTitle">系統狀態</h3>
-                    
                     <div class="space-y-4 flex-grow">
-                        
-                        <!-- 緊急停機按鈕 -->
+                        <!-- Stop -->
                         <button onclick="sendCommand('STOP', 99)" class="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold py-3 rounded-lg shadow-lg flex items-center justify-center gap-2 transition transform active:scale-95 group border border-red-500">
                             <i class="fa-solid fa-power-off text-xl group-hover:animate-pulse"></i> 
                             <span class="text-lg" data-i18n="btnStop">緊急停機 STOP</span>
                         </button>
 
-                        <!-- 運作模式 -->
+                        <!-- Mode -->
                         <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-purple-500/50">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
@@ -119,7 +114,7 @@
                             </div>
                         </div>
 
-                        <!-- 感測器 -->
+                        <!-- Sensor -->
                         <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700 flex items-center justify-between">
                             <div class="flex items-center gap-3">
                                 <i id="sensorIcon" class="fa-solid fa-heart-pulse text-slate-500 text-lg"></i>
@@ -128,14 +123,14 @@
                             <span id="sensorText" class="text-xs font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded">OK</span>
                         </div>
 
-                        <!-- 水泵 -->
-                        <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-blue-500/50">
+                        <!-- Pump -->
+                        <div id="boxPump" class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-blue-500/50">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     <div id="pumpInd" class="w-3 h-3 rounded-full bg-slate-600 transition-all duration-500"></div>
                                     <div class="flex flex-col">
                                         <span class="text-sm font-bold text-blue-200" data-i18n="pump">水泵</span>
-                                        <span class="text-[10px] text-slate-500">Auto Control</span>
+                                        <span class="text-[10px] text-slate-500" id="pumpStatusText">Auto Control</span>
                                     </div>
                                 </div>
                                 <div class="flex gap-1">
@@ -145,14 +140,14 @@
                             </div>
                         </div>
 
-                        <!-- 施肥 -->
-                        <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-yellow-500/50">
+                        <!-- Fert -->
+                        <div id="boxFert" class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-yellow-500/50">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     <div id="fertInd" class="w-3 h-3 rounded-full bg-slate-600 transition-all duration-500"></div>
                                     <div class="flex flex-col">
                                         <span class="text-sm font-bold text-yellow-200" data-i18n="fert">施肥</span>
-                                        <span class="text-[10px] text-slate-500">Timer: 08:00</span>
+                                        <span class="text-[10px] text-slate-500" id="fertStatusText">Timer: 08:00</span>
                                     </div>
                                 </div>
                                 <div class="flex gap-1">
@@ -162,7 +157,6 @@
                             </div>
                         </div>
                     </div>
-                    
                     <div id="cmdStatus" class="text-xs text-center text-slate-500 mt-4 h-4 font-mono tracking-wide" data-i18n="waiting">System Ready</div>
                 </div>
             </div>
@@ -174,7 +168,7 @@
             </div>
         </div>
 
-        <!-- Logs View -->
+        <!-- Logs -->
         <div id="view-logs" class="hidden h-full">
             <div class="bg-black p-4 rounded-lg border border-slate-700 font-mono text-xs h-[30rem] overflow-y-scroll shadow-inner relative">
                 <div class="text-green-400 font-bold mb-2 sticky top-0 bg-black/90 p-1 border-b border-green-900/50 flex justify-between">
@@ -190,7 +184,7 @@
 
     <script>
         let intervalId, myChart, currentFeeds = [], curLang = 'zh', statusTimeout, currentLimit = 50;
-        let lastDataTime = Date.now(); // 追蹤最後一筆數據產生的時間
+        let lastDataTime = Date.now();
 
         function log(msg, type='info') {
             const box = document.getElementById('debugLog'); if(!box) return;
@@ -201,38 +195,26 @@
 
         const i18n = {
             zh: {
-                navTitle: "智慧農場自動化系統", exportBtn: "匯出", setupTitle: "連線設定", saveBtn: "儲存並連線", monitorTitle: "環境即時監測", updated: "最後更新:", temp: "溫度", hum: "濕度", soil: "土壤濕度", status: "狀態", statusDry: "嚴重缺水", statusWet: "過濕", statusOk: "適中", controlTitle: "自動化運作狀態", pump: "水泵 (自動補水)", fert: "施肥機 (定時)", sensorHealth: "感測器健康度", chartTitle: "歷史趨勢", waiting: "系統待命中", cmdSending: "指令發送中...", cmdSent: "指令已發送", cmdFail: "發送失敗", errorSens: "感測器異常", normal: "正常", alertLock: "警報：水泵運轉超時，系統已強制鎖定！", alertSens: "警報：感測器讀取失敗，自動化已暫停！", exportError: "無數據可匯出", fillAlert: "請完整填寫 Channel ID", tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key", tabDash: "儀表板", tabLog: "系統日誌", dataLimitLabel: "讀取/匯出筆數 (10-8000)", mode: "運作模式", btnAuto: "自動", btnMan: "手動", modeAuto: "自動 (Auto)", modeMan: "手動 (Manual)", btnStop: "緊急停機 STOP", stopSent: "緊急停機指令已送出！", timeoutMsg: "系統端連線異常：超過 5 分鐘未收到數據", statusTimeout: "連線異常"
+                navTitle: "智慧農場自動化系統", exportBtn: "匯出", setupTitle: "連線設定", saveBtn: "儲存並連線", monitorTitle: "環境即時監測", updated: "最後更新:", temp: "溫度", hum: "濕度", soil: "土壤濕度", status: "狀態", statusDry: "嚴重缺水", statusWet: "過濕", statusOk: "適中", controlTitle: "自動化運作狀態", pump: "水泵 (自動補水)", fert: "施肥機 (定時)", sensorHealth: "感測器健康度", chartTitle: "歷史趨勢", waiting: "系統待命中", cmdSending: "指令發送中...", cmdSent: "指令已發送", cmdFail: "發送失敗", errorSens: "感測器異常", normal: "正常", alertLock: "警報：水泵運轉超時，系統已強制鎖定！", alertSens: "警報：感測器讀取失敗，自動化已暫停！", exportError: "無數據可匯出", fillAlert: "請完整填寫 Channel ID", tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key", tabDash: "儀表板", tabLog: "系統日誌", dataLimitLabel: "讀取/匯出筆數 (10-8000)", mode: "運作模式", btnAuto: "自動", btnMan: "手動", modeAuto: "自動 (Auto)", modeMan: "手動 (Manual)", btnStop: "緊急停機 STOP", stopSent: "緊急停機指令已送出！", timeoutMsg: "系統端連線異常：超過 5 分鐘未收到數據", statusTimeout: "連線異常",
+                overload: "過載跳脫 (Trip)", alertOverloadPump: "警報：水泵積熱電驛跳脫 (Overload)！", alertOverloadFert: "警報：施肥機積熱電驛跳脫 (Overload)！"
             },
             en: {
-                navTitle: "Smart Farm Automation", exportBtn: "Export", setupTitle: "Connection Setup", saveBtn: "Save Settings", monitorTitle: "Live Environment", updated: "Updated:", temp: "Temp", hum: "Humidity", soil: "Soil Moisture", status: "Status", statusDry: "Very Dry", statusWet: "Wet", statusOk: "Good", controlTitle: "System Status", pump: "Water Pump", fert: "Fertilizer", sensorHealth: "Sensor Health", chartTitle: "Trend Analysis", waiting: "System Ready", cmdSending: "Sending...", cmdSent: "Command Sent", cmdFail: "Failed", errorSens: "Sensor Error", normal: "Normal", alertLock: "ALERT: Pump timeout! System locked.", alertSens: "ALERT: Sensor failure detected!", exportError: "No data", fillAlert: "Please fill in Channel ID", tbAlert: "Please fill in TalkBack ID and Key", tabDash: "Dashboard", tabLog: "System Logs", dataLimitLabel: "Max Records (10-8000)", mode: "Operation Mode", btnAuto: "Auto", btnMan: "Manual", modeAuto: "Auto", modeMan: "Manual", btnStop: "EMERGENCY STOP", stopSent: "STOP command sent!", timeoutMsg: "Connection Timeout: No data for 5 mins!", statusTimeout: "Conn Error"
+                navTitle: "Smart Farm Automation", exportBtn: "Export", setupTitle: "Connection Setup", saveBtn: "Save Settings", monitorTitle: "Live Environment", updated: "Updated:", temp: "Temp", hum: "Humidity", soil: "Soil Moisture", status: "Status", statusDry: "Very Dry", statusWet: "Wet", statusOk: "Good", controlTitle: "System Status", pump: "Water Pump", fert: "Fertilizer", sensorHealth: "Sensor Health", chartTitle: "Trend Analysis", waiting: "System Ready", cmdSending: "Sending...", cmdSent: "Command Sent", cmdFail: "Failed", errorSens: "Sensor Error", normal: "Normal", alertLock: "ALERT: Pump timeout! System locked.", alertSens: "ALERT: Sensor failure detected!", exportError: "No data", fillAlert: "Please fill in Channel ID", tbAlert: "Please fill in TalkBack ID and Key", tabDash: "Dashboard", tabLog: "System Logs", dataLimitLabel: "Max Records (10-8000)", mode: "Operation Mode", btnAuto: "Auto", btnMan: "Manual", modeAuto: "Auto", modeMan: "Manual", btnStop: "EMERGENCY STOP", stopSent: "STOP command sent!", timeoutMsg: "Connection Timeout: No data for 5 mins!", statusTimeout: "Conn Error",
+                overload: "OVERLOAD TRIP", alertOverloadPump: "ALERT: Water Pump Overload Trip!", alertOverloadFert: "ALERT: Fertilizer Overload Trip!"
             }
         };
 
         setInterval(() => document.getElementById('digitalClock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false }), 1000);
 
-        // --- 核心邏輯：逾時偵測 (使用數據時間戳記) ---
         setInterval(() => {
-            const timeSinceLast = Date.now() - lastDataTime;
-            const threshold = 300000; // 5分鐘 = 300000ms
-            
-            const connText = document.getElementById('connText');
-            const connDot = document.getElementById('connDot');
-            
-            if (timeSinceLast > threshold) {
-                // 如果目前狀態還不是異常，就觸發
+            if (Date.now() - lastDataTime > 300000) {
+                const connText = document.getElementById('connText');
                 if (connText.innerText !== i18n[curLang].statusTimeout) {
                     connText.innerText = i18n[curLang].statusTimeout;
                     connText.className = "text-red-400 font-bold";
-                    connDot.className = "w-2 h-2 rounded-full bg-red-500 animate-pulse";
+                    document.getElementById('connDot').className = "w-2 h-2 rounded-full bg-red-500 animate-pulse";
                     addAlert("timeoutErr", i18n[curLang].timeoutMsg);
-                    log("系統警報：超過 5 分鐘未收到任何數據！", "error");
-                }
-            } else {
-                // 如果已經恢復，且之前有報警，就清除
-                // (通常在 fetchSensorData 成功後會處理，這裡做雙重保險)
-                if (connText.innerText === i18n[curLang].statusTimeout) {
-                    setConnStatus('success');
-                    removeAlert("timeoutErr");
+                    log("逾時警告：未收到數據", "error");
                 }
             }
         }, 1000);
@@ -243,11 +225,9 @@
             document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (i18n[curLang][key]) el.innerText = i18n[curLang][key]; });
             if(myChart) { myChart.data.datasets[0].label = i18n[curLang].temp; myChart.data.datasets[1].label = i18n[curLang].hum; myChart.data.datasets[2].label = i18n[curLang].soil; myChart.update(); }
             updateDynamicText();
-            // 如果目前是逾時狀態，更新文字
             if (Date.now() - lastDataTime > 300000) {
                 document.getElementById('connText').innerText = i18n[curLang].statusTimeout;
-                const alertEl = document.getElementById('timeoutErr');
-                if(alertEl) alertEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> ${i18n[curLang].timeoutMsg}`;
+                const alertEl = document.getElementById('timeoutErr'); if(alertEl) alertEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> ${i18n[curLang].timeoutMsg}`;
             }
             if(currentFeeds.length > 0) updateUI(currentFeeds[currentFeeds.length-1]);
         }
@@ -281,7 +261,7 @@
             localStorage.setItem('conf_dataLimit', currentLimit);
             updateDynamicText();
             document.getElementById('setupPanel').classList.add('hidden');
-            log(`設定已儲存 (讀取筆數: ${currentLimit})`, "success");
+            log(`設定已儲存 (讀取: ${currentLimit})`, "success");
             setConnStatus("connecting");
             startLoop();
         }
@@ -295,9 +275,9 @@
 
         async function fetchSensorData() {
             const cid = localStorage.getItem('conf_channelId'); const rkey = localStorage.getItem('conf_readKey');
-            if(!cid) { log("尚未設定 Channel ID。", "warn"); return; }
+            if(!cid) { log("未設定 Channel ID", "warn"); return; }
             try {
-                log(`讀取 ThingSpeak (${currentLimit}筆)...`, "info");
+                log(`讀取數據 (${currentLimit}筆)...`, "info");
                 let url = `https://api.thingspeak.com/channels/${cid}/feeds.json?results=${currentLimit}`;
                 if(rkey) url += `&api_key=${rkey}`;
                 const res = await fetch(url);
@@ -305,24 +285,20 @@
                 const data = await res.json();
                 const feeds = data.feeds;
                 currentFeeds = feeds;
+                lastDataTime = Date.now();
                 setConnStatus("success");
+                removeAlert("timeoutErr");
                 
-                log(`成功讀取 ${feeds.length} 筆資料`, "success");
+                log(`成功讀取 ${feeds.length} 筆`, "success");
                 if(feeds.length > 0) {
                     const last = feeds[feeds.length-1];
-                    // 關鍵修正：更新最後一次數據的時間戳記
-                    lastDataTime = new Date(last.created_at).getTime();
-                    removeAlert("timeoutErr"); // 有數據就移除警報
-
                     updateUI(last);
                     myChart.data.labels = feeds.map(f => new Date(f.created_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}));
                     myChart.data.datasets[0].data = feeds.map(f => f.field1);
                     myChart.data.datasets[1].data = feeds.map(f => f.field2);
                     myChart.data.datasets[2].data = feeds.map(f => f.field3);
                     myChart.update();
-                } else { 
-                    log("無數據", "warn"); 
-                }
+                } else { log("無數據", "warn"); }
             } catch(e) { console.error(e); log(`讀取失敗: ${e.message}`, "error"); setConnStatus("error"); }
         }
 
@@ -337,35 +313,69 @@
             const elSoil = document.getElementById('soilStatus');
             if(!isNaN(s)) { elSoil.innerText = s < 20 ? i18n[curLang].statusDry : (s > 80 ? i18n[curLang].statusWet : i18n[curLang].statusOk); elSoil.className = s < 20 ? "text-red-400 font-bold" : "text-slate-300 font-bold"; }
 
+            // Decode Status Bits
             const isPump = (status & 1) > 0;
             const isFert = (status & 2) > 0;
             const isLock = (status & 4) > 0;
             const isErr  = (status & 8) > 0;
             const isAuto = (status & 16) > 0;
+            const isOlPump = (status & 32) > 0; // Bit 5
+            const isOlFert = (status & 64) > 0; // Bit 6
 
-            const modeInd = document.getElementById('modeInd');
-            const modeText = document.getElementById('modeText');
-            if (isAuto) {
-                modeInd.className = "w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]";
-                modeText.innerText = i18n[curLang].modeAuto;
-                modeText.className = "text-[10px] text-green-400 font-bold";
-            } else {
-                modeInd.className = "w-3 h-3 rounded-full bg-orange-500 shadow-[0_0_10px_#f97316]";
-                modeText.innerText = i18n[curLang].modeMan;
-                modeText.className = "text-[10px] text-orange-400 font-bold";
-            }
+            // Mode
+            const modeInd = document.getElementById('modeInd'); const modeText = document.getElementById('modeText');
+            if (isAuto) { modeInd.className = "w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"; modeText.innerText = i18n[curLang].modeAuto; modeText.className = "text-[10px] text-green-400 font-bold"; } 
+            else { modeInd.className = "w-3 h-3 rounded-full bg-orange-500 shadow-[0_0_10px_#f97316]"; modeText.innerText = i18n[curLang].modeMan; modeText.className = "text-[10px] text-orange-400 font-bold"; }
 
+            // Sensor
             const sensTxt = document.getElementById('sensorText');
             if (isErr) { sensTxt.innerText = i18n[curLang].errorSens; sensTxt.className = "text-xs font-bold text-white bg-red-600 px-2 py-1 rounded animate-pulse"; addAlert("sensErr", i18n[curLang].alertSens); } 
             else { sensTxt.innerText = "OK"; sensTxt.className = "text-xs font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded"; removeAlert("sensErr"); }
 
+            // Pump Status
             const pumpInd = document.getElementById('pumpInd');
-            if (isLock) { pumpInd.className = "w-3 h-3 rounded-full bg-red-600 animate-pulse-red"; addAlert("pumpLock", i18n[curLang].alertLock); } 
-            else if (isPump) { pumpInd.className = "w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6] animate-pulse"; removeAlert("pumpLock"); } 
-            else { pumpInd.className = "w-3 h-3 rounded-full bg-slate-600"; removeAlert("pumpLock"); }
+            const pumpTxt = document.getElementById('pumpStatusText');
+            if (isOlPump) {
+                pumpInd.className = "w-3 h-3 rounded-full bg-red-600 animate-pulse-red";
+                pumpTxt.innerText = i18n[curLang].overload;
+                pumpTxt.className = "text-[10px] text-red-500 font-bold animate-pulse";
+                addAlert("pumpOL", i18n[curLang].alertOverloadPump);
+            } else if (isLock) {
+                pumpInd.className = "w-3 h-3 rounded-full bg-red-600";
+                pumpTxt.innerText = "LOCKED";
+                pumpTxt.className = "text-[10px] text-red-500";
+                addAlert("pumpLock", i18n[curLang].alertLock);
+            } else if (isPump) {
+                pumpInd.className = "w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6] animate-pulse";
+                pumpTxt.innerText = "Running";
+                pumpTxt.className = "text-[10px] text-blue-400 font-bold";
+                removeAlert("pumpLock"); removeAlert("pumpOL");
+            } else {
+                pumpInd.className = "w-3 h-3 rounded-full bg-slate-600";
+                pumpTxt.innerText = "Idle";
+                pumpTxt.className = "text-[10px] text-slate-500";
+                removeAlert("pumpLock"); removeAlert("pumpOL");
+            }
 
+            // Fert Status
             const fertInd = document.getElementById('fertInd');
-            fertInd.className = isFert ? "w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_10px_#eab308] animate-pulse" : "w-3 h-3 rounded-full bg-slate-600";
+            const fertTxt = document.getElementById('fertStatusText');
+            if (isOlFert) {
+                fertInd.className = "w-3 h-3 rounded-full bg-red-600 animate-pulse-red";
+                fertTxt.innerText = i18n[curLang].overload;
+                fertTxt.className = "text-[10px] text-red-500 font-bold animate-pulse";
+                addAlert("fertOL", i18n[curLang].alertOverloadFert);
+            } else if (isFert) {
+                fertInd.className = "w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_10px_#eab308] animate-pulse";
+                fertTxt.innerText = "Running";
+                fertTxt.className = "text-[10px] text-yellow-400 font-bold";
+                removeAlert("fertOL");
+            } else {
+                fertInd.className = "w-3 h-3 rounded-full bg-slate-600";
+                fertTxt.innerText = "Timer: 08:00";
+                fertTxt.className = "text-[10px] text-slate-500";
+                removeAlert("fertOL");
+            }
         }
 
         function addAlert(id, msg) {
@@ -391,7 +401,6 @@
             if(ledNum === 0) ind = document.getElementById('modeInd');
             else if(ledNum === 1) ind = document.getElementById('pumpInd');
             else if(ledNum === 2) ind = document.getElementById('fertInd');
-            else if(ledNum === 99) {} 
 
             if(ind) ind.classList.add('animate-ping');
 
