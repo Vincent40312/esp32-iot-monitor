@@ -71,6 +71,7 @@
             <button onclick="switchTab('logs')" id="tab-logs" class="py-2 px-4 text-slate-400 hover:text-slate-200 border-b-2 border-transparent focus:outline-none transition-colors" data-i18n="tabLog">系統日誌</button>
         </div>
 
+        <!-- 警報容器 -->
         <div id="alertContainer" class="space-y-3 mb-6"></div>
 
         <!-- Dashboard View -->
@@ -185,11 +186,11 @@
         </div>
     </main>
 
-    <footer class="text-center p-4 text-slate-600 text-xs border-t border-slate-800 mt-4">ESP32 Smart Farm Project &copy; 2025</footer>
+    <footer class="text-center p-4 text-slate-600 text-xs border-t border-slate-800 mt-4">ESP32 Smart Farm Project &copy; 2025 本系統由唐貫瀚獨立製作</footer>
 
     <script>
         let intervalId, myChart, currentFeeds = [], curLang = 'zh', statusTimeout, currentLimit = 50;
-        let lastFetchTime = Date.now(); // 追蹤最後更新時間
+        let lastDataTime = Date.now(); // 追蹤最後一筆數據產生的時間
 
         function log(msg, type='info') {
             const box = document.getElementById('debugLog'); if(!box) return;
@@ -200,7 +201,7 @@
 
         const i18n = {
             zh: {
-                navTitle: "智慧農場自動化系統", exportBtn: "匯出", setupTitle: "連線設定", saveBtn: "儲存設定", monitorTitle: "環境即時監測", updated: "最後更新:", temp: "溫度", hum: "濕度", soil: "土壤濕度", status: "狀態", statusDry: "嚴重缺水", statusWet: "過濕", statusOk: "適中", controlTitle: "自動化運作狀態", pump: "水泵 (自動補水)", fert: "施肥機 (定時)", sensorHealth: "感測器健康度", chartTitle: "歷史趨勢", waiting: "系統待命中", cmdSending: "指令發送中...", cmdSent: "指令已發送", cmdFail: "發送失敗", errorSens: "感測器異常", normal: "正常", alertLock: "警報：水泵運轉超時，系統已強制鎖定！", alertSens: "警報：感測器讀取失敗，自動化已暫停！", exportError: "無數據可匯出", fillAlert: "請完整填寫 Channel ID", tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key", tabDash: "儀表板", tabLog: "系統日誌", dataLimitLabel: "讀取/匯出筆數 (10-8000)", mode: "運作模式", btnAuto: "自動", btnMan: "手動", modeAuto: "自動 (Auto)", modeMan: "手動 (Manual)", btnStop: "緊急停機 STOP", stopSent: "緊急停機指令已送出！", timeoutMsg: "系統端連線異常：超過 5 分鐘未收到數據！", statusTimeout: "連線異常"
+                navTitle: "智慧農場自動化系統", exportBtn: "匯出", setupTitle: "連線設定", saveBtn: "儲存並連線", monitorTitle: "環境即時監測", updated: "最後更新:", temp: "溫度", hum: "濕度", soil: "土壤濕度", status: "狀態", statusDry: "嚴重缺水", statusWet: "過濕", statusOk: "適中", controlTitle: "自動化運作狀態", pump: "水泵 (自動補水)", fert: "施肥機 (定時)", sensorHealth: "感測器健康度", chartTitle: "歷史趨勢", waiting: "系統待命中", cmdSending: "指令發送中...", cmdSent: "指令已發送", cmdFail: "發送失敗", errorSens: "感測器異常", normal: "正常", alertLock: "警報：水泵運轉超時，系統已強制鎖定！", alertSens: "警報：感測器讀取失敗，自動化已暫停！", exportError: "無數據可匯出", fillAlert: "請完整填寫 Channel ID", tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key", tabDash: "儀表板", tabLog: "系統日誌", dataLimitLabel: "讀取/匯出筆數 (10-8000)", mode: "運作模式", btnAuto: "自動", btnMan: "手動", modeAuto: "自動 (Auto)", modeMan: "手動 (Manual)", btnStop: "緊急停機 STOP", stopSent: "緊急停機指令已送出！", timeoutMsg: "系統端連線異常：超過 5 分鐘未收到數據", statusTimeout: "連線異常"
             },
             en: {
                 navTitle: "Smart Farm Automation", exportBtn: "Export", setupTitle: "Connection Setup", saveBtn: "Save Settings", monitorTitle: "Live Environment", updated: "Updated:", temp: "Temp", hum: "Humidity", soil: "Soil Moisture", status: "Status", statusDry: "Very Dry", statusWet: "Wet", statusOk: "Good", controlTitle: "System Status", pump: "Water Pump", fert: "Fertilizer", sensorHealth: "Sensor Health", chartTitle: "Trend Analysis", waiting: "System Ready", cmdSending: "Sending...", cmdSent: "Command Sent", cmdFail: "Failed", errorSens: "Sensor Error", normal: "Normal", alertLock: "ALERT: Pump timeout! System locked.", alertSens: "ALERT: Sensor failure detected!", exportError: "No data", fillAlert: "Please fill in Channel ID", tbAlert: "Please fill in TalkBack ID and Key", tabDash: "Dashboard", tabLog: "System Logs", dataLimitLabel: "Max Records (10-8000)", mode: "Operation Mode", btnAuto: "Auto", btnMan: "Manual", modeAuto: "Auto", modeMan: "Manual", btnStop: "EMERGENCY STOP", stopSent: "STOP command sent!", timeoutMsg: "Connection Timeout: No data for 5 mins!", statusTimeout: "Conn Error"
@@ -209,18 +210,29 @@
 
         setInterval(() => document.getElementById('digitalClock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false }), 1000);
 
-        // 逾時檢查 (每秒執行)
+        // --- 核心邏輯：逾時偵測 (使用數據時間戳記) ---
         setInterval(() => {
-            const timeSinceLast = Date.now() - lastFetchTime;
-            if (timeSinceLast > 300000) { // 5分鐘 = 300000ms
-                const connText = document.getElementById('connText');
-                const connDot = document.getElementById('connDot');
+            const timeSinceLast = Date.now() - lastDataTime;
+            const threshold = 300000; // 5分鐘 = 300000ms
+            
+            const connText = document.getElementById('connText');
+            const connDot = document.getElementById('connDot');
+            
+            if (timeSinceLast > threshold) {
+                // 如果目前狀態還不是異常，就觸發
                 if (connText.innerText !== i18n[curLang].statusTimeout) {
                     connText.innerText = i18n[curLang].statusTimeout;
                     connText.className = "text-red-400 font-bold";
                     connDot.className = "w-2 h-2 rounded-full bg-red-500 animate-pulse";
                     addAlert("timeoutErr", i18n[curLang].timeoutMsg);
-                    log("逾時警告：超過 5 分鐘未收到數據。", "error");
+                    log("系統警報：超過 5 分鐘未收到任何數據！", "error");
+                }
+            } else {
+                // 如果已經恢復，且之前有報警，就清除
+                // (通常在 fetchSensorData 成功後會處理，這裡做雙重保險)
+                if (connText.innerText === i18n[curLang].statusTimeout) {
+                    setConnStatus('success');
+                    removeAlert("timeoutErr");
                 }
             }
         }, 1000);
@@ -231,10 +243,9 @@
             document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (i18n[curLang][key]) el.innerText = i18n[curLang][key]; });
             if(myChart) { myChart.data.datasets[0].label = i18n[curLang].temp; myChart.data.datasets[1].label = i18n[curLang].hum; myChart.data.datasets[2].label = i18n[curLang].soil; myChart.update(); }
             updateDynamicText();
-            // 刷新狀態文字 (如果目前是連線異常)
-            if (Date.now() - lastFetchTime > 300000) {
+            // 如果目前是逾時狀態，更新文字
+            if (Date.now() - lastDataTime > 300000) {
                 document.getElementById('connText').innerText = i18n[curLang].statusTimeout;
-                // 更新警報文字
                 const alertEl = document.getElementById('timeoutErr');
                 if(alertEl) alertEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> ${i18n[curLang].timeoutMsg}`;
             }
@@ -294,22 +305,24 @@
                 const data = await res.json();
                 const feeds = data.feeds;
                 currentFeeds = feeds;
-                
-                // 成功讀取，更新時間戳記並移除警報
-                lastFetchTime = Date.now();
                 setConnStatus("success");
-                removeAlert("timeoutErr");
                 
                 log(`成功讀取 ${feeds.length} 筆資料`, "success");
                 if(feeds.length > 0) {
                     const last = feeds[feeds.length-1];
+                    // 關鍵修正：更新最後一次數據的時間戳記
+                    lastDataTime = new Date(last.created_at).getTime();
+                    removeAlert("timeoutErr"); // 有數據就移除警報
+
                     updateUI(last);
                     myChart.data.labels = feeds.map(f => new Date(f.created_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}));
                     myChart.data.datasets[0].data = feeds.map(f => f.field1);
                     myChart.data.datasets[1].data = feeds.map(f => f.field2);
                     myChart.data.datasets[2].data = feeds.map(f => f.field3);
                     myChart.update();
-                } else { log("無數據", "warn"); }
+                } else { 
+                    log("無數據", "warn"); 
+                }
             } catch(e) { console.error(e); log(`讀取失敗: ${e.message}`, "error"); setConnStatus("error"); }
         }
 
