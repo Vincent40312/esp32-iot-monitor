@@ -520,16 +520,33 @@
             }
         }
 
-        function exportCSV() {
+        // 1. 修改快速匯出 (exportCSV) - 強制轉為台北時間字串
+            function exportCSV() {
             if(currentFeeds.length === 0) return alert(i18n[curLang].exportError);
-            let csv = "data:text/csv;charset=utf-8,Time,Temp,Humidity,Soil,Status\n";
-            currentFeeds.forEach(row => { const t = new Date(row.created_at).toLocaleString(); csv += `${t},${row.field1},${row.field2},${row.field3},${row.field4}\n`; });
-            const link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", `farm_data_${new Date().toISOString().slice(0,10).replace(/-/g,"")}.csv`);
-            document.body.appendChild(link); link.click(); document.body.removeChild(link); log(`已匯出 CSV (${currentFeeds.length}筆)`, "success");
+            
+            // 加入 BOM (\uFEFF) 讓 Excel 開啟時不會亂碼
+            let csv = "\uFEFFTime,Temp,Humidity,Soil,Status\n";
+            
+            currentFeeds.forEach(row => { 
+                // 強制轉換為台北時間 (UTC+8)
+                const t = new Date(row.created_at).toLocaleString('zh-TW', { 
+                    timeZone: 'Asia/Taipei', 
+                    hour12: false,
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                });
+                csv += `${t},${row.field1},${row.field2},${row.field3},${row.field4}\n`; 
+            });
+            
+            const link = document.createElement("a"); 
+            link.setAttribute("href", encodeURI("data:text/csv;charset=utf-8," + csv)); 
+            link.setAttribute("download", `farm_data_${new Date().toISOString().slice(0,10).replace(/-/g,"")}.csv`);
+            document.body.appendChild(link); link.click(); document.body.removeChild(link); 
+            log(`已匯出 CSV (${currentFeeds.length}筆)`, "success");
         }
 
         // --- 新增：日期區間匯出功能 ---
-        async function exportDateRange() {
+            async function exportDateRange() {
             const cid = localStorage.getItem('conf_channelId');
             const rkey = localStorage.getItem('conf_readKey');
             const start = document.getElementById('startDate').value;
@@ -540,9 +557,11 @@
             const fmtStart = start.replace('T', '%20') + ':00';
             const fmtEnd = end.replace('T', '%20') + ':00';
 
-            log(`請求匯出區間：${fmtStart} 至 ${fmtEnd}`, "info");
+            log(`請求匯出區間：${fmtStart} 至 ${fmtEnd} (Taipei)`, "info");
 
-            let url = `https://api.thingspeak.com/channels/${cid}/feeds.json?start=${fmtStart}&end=${fmtEnd}`;
+            // --- 修改重點：在 URL 加入 &timezone=Asia/Taipei ---
+            // 這樣 ThingSpeak 會知道您輸入的時間是台北時間，並且回傳的數據也會參考該時區
+            let url = `https://api.thingspeak.com/channels/${cid}/feeds.json?start=${fmtStart}&end=${fmtEnd}&timezone=Asia/Taipei`;
             if(rkey) url += `&api_key=${rkey}`;
 
             try {
@@ -557,13 +576,22 @@
                     return;
                 }
 
-                let csv = "data:text/csv;charset=utf-8,Time,Temp,Humidity,Soil,Status\n";
+                // 加入 BOM 避免 Excel 中文亂碼
+                let csv = "\uFEFFTime,Temp,Humidity,Soil,Status\n";
+                
                 rangeFeeds.forEach(row => {
-                    const t = new Date(row.created_at).toLocaleString();
+                    // 強制轉換為台北時間 (UTC+8)
+                    const t = new Date(row.created_at).toLocaleString('zh-TW', { 
+                        timeZone: 'Asia/Taipei', 
+                        hour12: false,
+                        year: 'numeric', month: '2-digit', day: '2-digit',
+                        hour: '2-digit', minute: '2-digit', second: '2-digit'
+                    });
                     csv += `${t},${row.field1},${row.field2},${row.field3},${row.field4}\n`;
                 });
+
                 const link = document.createElement("a");
-                link.setAttribute("href", encodeURI(csv));
+                link.setAttribute("href", encodeURI("data:text/csv;charset=utf-8," + csv));
                 link.setAttribute("download", `farm_export_${start.split('T')[0]}_to_${end.split('T')[0]}.csv`);
                 document.body.appendChild(link);
                 link.click();
