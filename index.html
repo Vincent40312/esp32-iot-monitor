@@ -57,43 +57,25 @@
 
     <main class="container mx-auto p-4 max-w-6xl flex-grow">
         
-        <!-- 設定面板 (包含新的區間匯出功能) -->
+        <!-- 設定面板 (已移除匯出區塊) -->
         <div id="setupPanel" class="bg-slate-800 p-6 rounded-lg mb-6 border border-green-500/50 shadow-2xl hidden transform transition-all">
             <h3 class="font-bold mb-4 text-green-300 text-lg flex items-center"><i class="fa-solid fa-sliders mr-2"></i> <span data-i18n="setupTitle">系統設定</span></h3>
             
             <div class="grid gap-4 md:grid-cols-2 mb-6">
                 <div><label class="block text-xs text-slate-400 mb-1 font-bold">Channel ID *</label><input type="text" id="channelId" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition"></div>
                 <div><label class="block text-xs text-slate-400 mb-1 font-bold">Read API Key</label><input type="text" id="readKey" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition"></div>
-                <div><label class="block text-xs text-slate-400 mb-1 font-bold">TalkBack ID</label><input type="text" id="tbId" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition"></div>
-                <div><label class="block text-xs text-slate-400 mb-1 font-bold">TalkBack API Key</label><input type="text" id="tbKey" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition"></div>
+                <div><label class="block text-xs text-slate-400 mb-1 font-bold">TalkBack ID (控制必填)</label><input type="text" id="tbId" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition"></div>
+                <div><label class="block text-xs text-slate-400 mb-1 font-bold">TalkBack API Key (控制必填)</label><input type="text" id="tbKey" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition"></div>
                 <div class="md:col-span-2"><label class="block text-xs text-slate-400 mb-1 font-bold" data-i18n="dataLimitLabel">快速讀取/匯出筆數 (10-8000)</label><input type="number" id="dataLimit" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none transition" min="10" max="8000" value="50"></div>
             </div>
 
-            <!-- 新增：指定時間區間匯出 -->
-            <div class="border-t border-slate-700 pt-4 mt-2">
-                <h4 class="text-green-300 font-bold mb-3 flex items-center text-sm"><i class="fa-solid fa-calendar-days mr-2"></i> <span data-i18n="rangeTitle">指定時間區間匯出 (Advanced Export)</span></h4>
-                <div class="grid gap-4 md:grid-cols-2">
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1" data-i18n="startDate">開始時間</label>
-                        <input type="datetime-local" id="startDate" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none text-white">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1" data-i18n="endDate">結束時間</label>
-                        <input type="datetime-local" id="endDate" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none text-white">
-                    </div>
-                </div>
-                <button onclick="exportDateRange()" class="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-bold w-full md:w-auto transition shadow flex items-center justify-center">
-                    <i class="fa-solid fa-file-csv mr-2"></i> <span data-i18n="btnExportRange">下載區間報表</span>
-                </button>
-            </div>
-
-            <hr class="border-slate-700 my-6">
             <button onclick="saveSettings()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-bold w-full transition shadow-lg" data-i18n="saveBtn">儲存設定並連線</button>
         </div>
 
+        <!-- 分頁切換按鈕 -->
         <div class="flex space-x-1 mb-6 border-b border-slate-700">
             <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-2 px-4 text-green-400 border-b-2 border-green-400 font-bold focus:outline-none transition-colors" data-i18n="tabDash">儀表板</button>
-            <button onclick="switchTab('logs')" id="tab-logs" class="py-2 px-4 text-slate-400 hover:text-slate-200 border-b-2 border-transparent focus:outline-none transition-colors" data-i18n="tabLog">系統日誌</button>
+            <button onclick="switchTab('logs')" id="tab-logs" class="py-2 px-4 text-slate-400 hover:text-slate-200 border-b-2 border-transparent focus:outline-none transition-colors" data-i18n="tabLog">系統日誌 & 匯出</button>
         </div>
 
         <div id="alertContainer" class="space-y-3 mb-6"></div>
@@ -123,7 +105,7 @@
                         </button>
                         <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700 flex flex-col gap-2 transition hover:border-purple-500/50">
                             <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3"><div id="modeInd" class="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"></div><div class="flex flex-col"><span class="text-sm font-bold text-purple-200" data-i18n="mode">運作模式</span><span class="text-[10px] text-slate-500" id="modeText">Auto</span></div></div>
+                                <div class="flex items-center gap-3"><div id="modeInd" class="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e] transition-all duration-300"></div><div class="flex flex-col"><span class="text-sm font-bold text-purple-200" data-i18n="mode">運作模式</span><span class="text-[10px] text-slate-500" id="modeText">Auto</span></div></div>
                                 <div class="flex gap-1"><button onclick="sendCommand('AUTO_ON', 0)" class="bg-green-600 hover:bg-green-500 active:scale-95 text-white px-2 py-1.5 rounded text-xs font-bold transition shadow" data-i18n="btnAuto">Auto</button><button onclick="sendCommand('AUTO_OFF', 0)" class="bg-slate-600 hover:bg-slate-500 active:scale-95 text-white px-2 py-1.5 rounded text-xs font-bold transition shadow" data-i18n="btnMan">Manual</button></div>
                             </div>
                         </div>
@@ -155,14 +137,47 @@
             </div>
         </div>
 
-        <!-- Logs View -->
+        <!-- 頁面 2: 系統日誌 & 資料匯出 -->
         <div id="view-logs" class="hidden h-full">
-            <div class="bg-black p-4 rounded-lg border border-slate-700 font-mono text-xs h-[30rem] overflow-y-scroll shadow-inner relative">
-                <div class="text-green-400 font-bold mb-2 sticky top-0 bg-black/90 p-1 border-b border-green-900/50 flex justify-between">
-                    <span>>>> System Diagnostic Log</span>
-                    <button onclick="document.getElementById('debugLog').innerHTML=''" class="text-xs text-slate-500 hover:text-white px-2 border border-slate-700 rounded">Clear</button>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                
+                <!-- 左側：日誌 (佔 2/3) -->
+                <div class="lg:col-span-2 bg-black p-4 rounded-lg border border-slate-700 font-mono text-xs h-[30rem] overflow-y-scroll shadow-inner relative">
+                    <div class="text-green-400 font-bold mb-2 sticky top-0 bg-black/90 p-1 border-b border-green-900/50 flex justify-between">
+                        <span>>>> System Diagnostic Log</span>
+                        <button onclick="document.getElementById('debugLog').innerHTML=''" class="text-xs text-slate-500 hover:text-white px-2 border border-slate-700 rounded">Clear</button>
+                    </div>
+                    <div id="debugLog" class="text-slate-300 space-y-1"></div>
                 </div>
-                <div id="debugLog" class="text-slate-300 space-y-1"></div>
+
+                <!-- 右側：進階匯出 (佔 1/3) -->
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg h-fit">
+                    <h3 class="text-slate-400 text-sm uppercase font-bold mb-4 border-b border-slate-700 pb-2 flex items-center">
+                        <i class="fa-solid fa-file-csv mr-2"></i> <span data-i18n="rangeTitle">指定時間區間匯出</span>
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1" data-i18n="startDate">開始時間</label>
+                            <input type="datetime-local" id="startDate" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none text-white transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1" data-i18n="endDate">結束時間</label>
+                            <input type="datetime-local" id="endDate" class="w-full bg-slate-900 border border-slate-600 rounded p-2 focus:border-green-500 outline-none text-white transition">
+                        </div>
+                        
+                        <button onclick="exportDateRange()" class="w-full bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-3 rounded-lg shadow-lg flex items-center justify-center gap-2 transition group mt-2">
+                            <i class="fa-solid fa-cloud-arrow-down text-lg"></i> 
+                            <span data-i18n="btnExportRange">下載區間報表</span>
+                        </button>
+
+                        <div class="text-[10px] text-slate-500 mt-4 leading-relaxed border-t border-slate-700 pt-3">
+                            * 注意：ThingSpeak API 單次限制約 8000 筆。若區間過大請分批下載。<br>
+                            * Note: API limit ~8000 feeds per request.
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </main>
@@ -182,10 +197,11 @@
 
         const i18n = {
             zh: {
-                navTitle: "智慧農場自動化系統", exportBtn: "匯出", setupTitle: "連線設定", saveBtn: "儲存並連線", monitorTitle: "環境即時監測", updated: "最後更新:", temp: "溫度", hum: "濕度", soil: "土壤濕度", status: "狀態", statusDry: "嚴重缺水", statusWet: "過濕", statusOk: "適中", controlTitle: "自動化運作狀態", pump: "水泵 (自動補水)", fert: "施肥機 (定時)", sensorHealth: "感測器健康度", chartTitle: "歷史趨勢", waiting: "系統待命中", cmdSending: "指令發送中...", cmdSent: "指令已發送", cmdFail: "發送失敗", errorSens: "感測器異常", normal: "正常", alertLock: "警報：水泵運轉超時，系統已強制鎖定！", alertSens: "警報：感測器讀取失敗，自動化已暫停！", exportError: "無數據可匯出", fillAlert: "請完整填寫 Channel ID", tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key", tabDash: "儀表板", tabLog: "系統日誌", dataLimitLabel: "快速讀取/匯出筆數 (10-8000)", mode: "運作模式", btnAuto: "自動", btnMan: "手動", modeAuto: "自動 (Auto)", modeMan: "手動 (Manual)", btnStop: "緊急停機 STOP", stopSent: "緊急停機指令已送出！", timeoutMsg: "系統端連線異常：超過 5 分鐘未收到數據", statusTimeout: "連線異常", overload: "過載跳脫 (Trip)", alertOverloadPump: "警報：水泵積熱電驛跳脫 (Overload)！", alertOverloadFert: "警報：施肥機積熱電驛跳脫 (Overload)！", rangeTitle: "指定時間區間匯出", startDate: "開始時間", endDate: "結束時間", btnExportRange: "下載區間報表", rangeAlert: "請選擇開始與結束時間"
+                navTitle: "智慧農場自動化系統", exportBtn: "匯出", setupTitle: "連線設定", saveBtn: "儲存設定", monitorTitle: "環境即時監測", updated: "最後更新:", temp: "溫度", hum: "濕度", soil: "土壤濕度", status: "狀態", statusDry: "嚴重缺水", statusWet: "過濕", statusOk: "適中", controlTitle: "自動化運作狀態", pump: "水泵 (自動補水)", fert: "施肥機 (定時)", sensorHealth: "感測器健康度", chartTitle: "歷史趨勢", waiting: "系統待命中", cmdSending: "指令發送中...", cmdSent: "指令已發送", cmdFail: "發送失敗", errorSens: "感測器異常", normal: "正常", alertLock: "警報：水泵運轉超時，系統已強制鎖定！", alertSens: "警報：感測器讀取失敗，自動化已暫停！", exportError: "無數據可匯出", fillAlert: "請完整填寫 Channel ID", tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key", tabDash: "儀表板", tabLog: "系統日誌 & 匯出", dataLimitLabel: "讀取/匯出筆數 (10-8000)", mode: "運作模式", btnAuto: "自動", btnMan: "手動", modeAuto: "自動 (Auto)", modeMan: "手動 (Manual)", btnStop: "緊急停機 STOP", stopSent: "緊急停機指令已送出！", timeoutMsg: "系統端連線異常：超過 5 分鐘未收到數據", statusTimeout: "連線異常",
+                overload: "過載跳脫 (Trip)", alertOverloadPump: "警報：水泵積熱電驛跳脫 (Overload)！", alertOverloadFert: "警報：施肥機積熱電驛跳脫 (Overload)！", rangeTitle: "指定時間區間匯出", startDate: "開始時間", endDate: "結束時間", btnExportRange: "下載區間報表", rangeAlert: "請選擇開始與結束時間"
             },
             en: {
-                navTitle: "Smart Farm Automation", exportBtn: "Export", setupTitle: "Connection Setup", saveBtn: "Save Settings", monitorTitle: "Live Environment", updated: "Updated:", temp: "Temp", hum: "Humidity", soil: "Soil Moisture", status: "Status", statusDry: "Very Dry", statusWet: "Wet", statusOk: "Good", controlTitle: "System Status", pump: "Water Pump", fert: "Fertilizer", sensorHealth: "Sensor Health", chartTitle: "Trend Analysis", waiting: "System Ready", cmdSending: "Sending...", cmdSent: "Command Sent", cmdFail: "Failed", errorSens: "Sensor Error", normal: "Normal", alertLock: "ALERT: Pump timeout! System locked.", alertSens: "ALERT: Sensor failure detected!", exportError: "No data", fillAlert: "Please fill in Channel ID", tbAlert: "Please fill in TalkBack ID and Key", tabDash: "Dashboard", tabLog: "System Logs", dataLimitLabel: "Max Records (10-8000)", mode: "Operation Mode", btnAuto: "Auto", btnMan: "Manual", modeAuto: "Auto", modeMan: "Manual", btnStop: "EMERGENCY STOP", stopSent: "STOP command sent!", timeoutMsg: "Connection Timeout: No data for 5 mins!", statusTimeout: "Conn Error", overload: "OVERLOAD TRIP", alertOverloadPump: "ALERT: Water Pump Overload Trip!", alertOverloadFert: "ALERT: Fertilizer Overload Trip!", rangeTitle: "Export by Date Range", startDate: "Start Date", endDate: "End Date", btnExportRange: "Download Range CSV", rangeAlert: "Please select start and end dates"
+                navTitle: "Smart Farm Automation", exportBtn: "Export", setupTitle: "Connection Setup", saveBtn: "Save Settings", monitorTitle: "Live Environment", updated: "Updated:", temp: "Temp", hum: "Humidity", soil: "Soil Moisture", status: "Status", statusDry: "Very Dry", statusWet: "Wet", statusOk: "Good", controlTitle: "System Status", pump: "Water Pump", fert: "Fertilizer", sensorHealth: "Sensor Health", chartTitle: "Trend Analysis", waiting: "System Ready", cmdSending: "Sending...", cmdSent: "Command Sent", cmdFail: "Failed", errorSens: "Sensor Error", normal: "Normal", alertLock: "ALERT: Pump timeout! System locked.", alertSens: "ALERT: Sensor failure detected!", exportError: "No data", fillAlert: "Please fill in Channel ID", tbAlert: "Please fill in TalkBack ID and Key", tabDash: "Dashboard", tabLog: "System Logs & Export", dataLimitLabel: "Max Records (10-8000)", mode: "Operation Mode", btnAuto: "Auto", btnMan: "Manual", modeAuto: "Auto", modeMan: "Manual", btnStop: "EMERGENCY STOP", stopSent: "STOP command sent!", timeoutMsg: "Connection Timeout: No data for 5 mins!", statusTimeout: "Conn Error", overload: "OVERLOAD TRIP", alertOverloadPump: "ALERT: Water Pump Overload Trip!", alertOverloadFert: "ALERT: Fertilizer Overload Trip!", rangeTitle: "Export by Date Range", startDate: "Start Date", endDate: "End Date", btnExportRange: "Download Range CSV", rangeAlert: "Please select start and end dates"
             }
         };
 
@@ -246,7 +262,7 @@
             localStorage.setItem('conf_dataLimit', currentLimit);
             updateDynamicText();
             document.getElementById('setupPanel').classList.add('hidden');
-            log(`設定已儲存 (讀取: ${currentLimit})`, "success");
+            log(`設定已儲存 (讀取筆數: ${currentLimit})`, "success");
             setConnStatus("connecting");
             startLoop();
         }
