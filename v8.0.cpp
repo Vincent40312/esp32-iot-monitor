@@ -20,7 +20,7 @@ String talkBackID = "55962";
 String talkBackKey = "T8LJBZEQZCQURIGI";
 
 // [設定] 請在此填入您的 Discord Webhook 網址
-const char* "discord_webhook = https://discord.com/api/webhooks/1450540646417961113/PBjCQtc-VlIA7cSeggc2R4ZnCcmDlqUtw31UtR9QM40e-HX1pLQD-2HjVoJPLbDLQsp7";
+const char* discord_webhook = "https://discord.com/api/webhooks/1450540646417961113/PBjCQtc-VlIA7cSeggc2R4ZnCcmDlqUtw31UtR9QM40e-HX1pLQD-2HjVoJPLbDLQsp7";
 
 // --- 硬體腳位 ---
 const int pumpPin = 2;    // 水泵輸出
