@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32 智慧農場中控台 v8.1</title>
+    <title>ESP32 智慧農場中控台 v8.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -17,16 +18,35 @@
         .animate-pulse-red { animation: pulse-red 2s infinite; }
         input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
         .data-stale { border-color: #ef4444 !important; background-color: rgba(127, 29, 29, 0.2) !important; }
+        
+        /* 更新通知動畫 */
+        #updateBanner { transition: transform 0.5s ease-in-out; }
+        .banner-hidden { transform: translateY(-100%); }
+        .banner-visible { transform: translateY(0); }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-200 font-sans min-h-screen flex flex-col">
+
+    <!-- Update Notification Banner (Hidden by default) -->
+    <div id="updateBanner" class="fixed top-0 left-0 w-full bg-blue-600 text-white z-[60] py-3 px-4 shadow-xl flex justify-between items-center banner-hidden">
+        <div class="flex items-center gap-3">
+            <i class="fa-solid fa-cloud-arrow-down text-xl animate-bounce"></i>
+            <div>
+                <span class="font-bold block text-sm md:text-base">發現新版本！</span>
+                <span class="text-xs text-blue-200">系統已發布更新，請重新整理以取得最新功能。</span>
+            </div>
+        </div>
+        <button onclick="window.location.reload()" class="bg-white text-blue-600 hover:bg-blue-50 px-4 py-1.5 rounded-full font-bold text-sm shadow transition hover:scale-105">
+            <i class="fa-solid fa-rotate-right mr-1"></i> 立即更新
+        </button>
+    </div>
 
     <!-- Navbar -->
     <nav class="bg-slate-800 p-4 border-b border-slate-700 sticky top-0 z-50 shadow-lg">
         <div class="container mx-auto flex justify-between items-center">
             <div class="flex items-center">
                 <i class="fa-solid fa-leaf text-green-500 mr-3 text-xl"></i>
-                <h1 class="text-lg md:text-xl font-bold text-white hidden md:block tracking-wide" data-i18n="navTitle">Smart Farm v8.1</h1>
+                <h1 class="text-lg md:text-xl font-bold text-white hidden md:block tracking-wide" data-i18n="navTitle">Smart Farm v8.2</h1>
                 <div id="connStatus" class="ml-4 px-2 py-1 text-xs rounded bg-slate-700 text-slate-400 flex items-center transition-all duration-300">
                     <div class="w-2 h-2 rounded-full bg-slate-500 mr-2" id="connDot"></div>
                     <span id="connText">待機</span>
@@ -253,10 +273,43 @@
         </div>
     </main>
 
-    <footer class="text-center p-4 text-slate-600 text-xs border-t border-slate-800 mt-4">ESP32 Smart Farm v8.1 &copy; 2025 本系統由唐貫瀚獨立製作 | <a href="https://github.com/Vincent40312/esp32-iot-monitor/tree/main" target="_blank" class="text-slate-500 hover:text-green-500 transition"><i class="fa-brands fa-github mr-1"></i>GitHub</a>
+    <footer class="text-center p-4 text-slate-600 text-xs border-t border-slate-800 mt-4">ESP32 Smart Farm v8.2 &copy; 2025 本系統由唐貫瀚獨立製作 | <a href="https://github.com/Vincent40312/esp32-iot-monitor/tree/main" target="_blank" class="text-slate-500 hover:text-green-500 transition"><i class="fa-brands fa-github mr-1"></i>GitHub</a>
     </footer>
 
     <script>
+        // --- 版本控制設定 ---
+        const currentVersion = "8.2"; // 目前網頁版本
+        let versionCheckInterval;
+
+        // 定期檢查 GitHub 上的版本檔
+        function startVersionCheck() {
+            // 每 60 秒檢查一次
+            versionCheckInterval = setInterval(checkForUpdate, 60000);
+            // 頁面載入後先檢查一次
+            checkForUpdate();
+        }
+
+        async function checkForUpdate() {
+            try {
+                // 加上時間戳記避免讀取到瀏覽器快取
+                const res = await fetch(`version.json?t=${new Date().getTime()}`);
+                if (!res.ok) return; // 如果沒有 version.json 就不做動作
+                
+                const data = await res.json();
+                if (data.version && data.version !== currentVersion) {
+                    showUpdateBanner();
+                }
+            } catch (e) {
+                console.log("版本檢查失敗 (可能是本機測試或網路問題):", e);
+            }
+        }
+
+        function showUpdateBanner() {
+            const banner = document.getElementById('updateBanner');
+            banner.classList.remove('banner-hidden');
+            banner.classList.add('banner-visible');
+        }
+
         let intervalId, myChart, currentFeeds = [], curLang = 'zh', statusTimeout, currentLimit = 50;
         let lastDataTime = 0; // 改為紀錄實際資料時間，而非抓取時間
 
@@ -269,10 +322,10 @@
 
         const i18n = {
             zh: {
-                navTitle: "智慧農場自動化系統 v8.1", exportBtn: "匯出", setupTitle: "連線設定", saveBtn: "儲存設定", monitorTitle: "環境即時監測", updated: "最後更新:", temp: "溫度", hum: "濕度", soil: "土壤濕度", status: "狀態", statusDry: "嚴重缺水", statusWet: "過濕", statusOk: "適中", controlTitle: "自動化運作狀態", pump: "水泵 (自動補水)", fert: "施肥機 (定時)", sensorHealth: "感測器健康度", chartTitle: "歷史趨勢", waiting: "系統待命中", cmdSending: "指令發送中...", cmdSent: "指令已發送", cmdFail: "發送失敗", errorSens: "感測器異常", normal: "正常", alertLock: "警報：水泵運轉超時，系統已強制鎖定！", alertSens: "警報：感測器讀取失敗，自動化已暫停！", exportError: "無數據可匯出", fillAlert: "請完整填寫 Channel ID", tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key", tabDash: "儀表板", tabLog: "系統日誌", dataLimitLabel: "讀取/匯出筆數 (10-8000)", mode: "運作模式", btnAuto: "自動", btnMan: "手動", modeAuto: "自動 (Auto)", modeMan: "手動 (Manual)", btnStop: "緊急停機 STOP", stopSent: "緊急停機指令已送出！", timeoutMsg: "警告：設備可能離線 (超過5分鐘無更新)", statusTimeout: "⚠️ 資料過期", overload: "過載跳脫 (Trip)", alertOverloadPump: "警報：水泵積熱電驛跳脫 (Overload)！", alertOverloadFert: "警報：施肥機積熱電驛跳脫 (Overload)！", rangeTitle: "資料匯出設定", startDate: "開始時間", endDate: "結束時間", btnExportRange: "下載區間報表", rangeAlert: "請選擇開始與結束時間"
+                navTitle: "智慧農場自動化系統 v8.2", exportBtn: "匯出", setupTitle: "連線設定", saveBtn: "儲存設定", monitorTitle: "環境即時監測", updated: "最後更新:", temp: "溫度", hum: "濕度", soil: "土壤濕度", status: "狀態", statusDry: "嚴重缺水", statusWet: "過濕", statusOk: "適中", controlTitle: "自動化運作狀態", pump: "水泵 (自動補水)", fert: "施肥機 (定時)", sensorHealth: "感測器健康度", chartTitle: "歷史趨勢", waiting: "系統待命中", cmdSending: "指令發送中...", cmdSent: "指令已發送", cmdFail: "發送失敗", errorSens: "感測器異常", normal: "正常", alertLock: "警報：水泵運轉超時，系統已強制鎖定！", alertSens: "警報：感測器讀取失敗，自動化已暫停！", exportError: "無數據可匯出", fillAlert: "請完整填寫 Channel ID", tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key", tabDash: "儀表板", tabLog: "系統日誌", dataLimitLabel: "讀取/匯出筆數 (10-8000)", mode: "運作模式", btnAuto: "自動", btnMan: "手動", modeAuto: "自動 (Auto)", modeMan: "手動 (Manual)", btnStop: "緊急停機 STOP", stopSent: "緊急停機指令已送出！", timeoutMsg: "警告：設備可能離線 (超過5分鐘無更新)", statusTimeout: "⚠️ 資料過期", overload: "過載跳脫 (Trip)", alertOverloadPump: "警報：水泵積熱電驛跳脫 (Overload)！", alertOverloadFert: "警報：施肥機積熱電驛跳脫 (Overload)！", rangeTitle: "資料匯出設定", startDate: "開始時間", endDate: "結束時間", btnExportRange: "下載區間報表", rangeAlert: "請選擇開始與結束時間"
             },
             en: {
-                navTitle: "Smart Farm Automation v8.1", exportBtn: "Export", setupTitle: "Connection Setup", saveBtn: "Save Settings", monitorTitle: "Live Environment", updated: "Updated:", temp: "Temp", hum: "Humidity", soil: "Soil Moisture", status: "Status", statusDry: "Very Dry", statusWet: "Wet", statusOk: "Good", controlTitle: "System Status", pump: "Water Pump", fert: "Fertilizer", sensorHealth: "Sensor Health", chartTitle: "Trend Analysis", waiting: "System Ready", cmdSending: "Sending...", cmdSent: "Command Sent", cmdFail: "Failed", errorSens: "Sensor Error", normal: "Normal", alertLock: "ALERT: Pump timeout! System locked.", alertSens: "ALERT: Sensor failure detected!", exportError: "No data", fillAlert: "Please fill in Channel ID", tbAlert: "Please fill in TalkBack ID and Key", tabDash: "Dashboard", tabLog: "System Logs", dataLimitLabel: "Max Records (10-8000)", mode: "Operation Mode", btnAuto: "Auto", btnMan: "Manual", modeAuto: "Auto", modeMan: "Manual", btnStop: "EMERGENCY STOP", stopSent: "STOP command sent!", timeoutMsg: "Warning: Device Offline (>5min no data)", statusTimeout: "⚠️ Data Stale", overload: "OVERLOAD TRIP", alertOverloadPump: "ALERT: Water Pump Overload Trip!", alertOverloadFert: "ALERT: Fertilizer Overload Trip!", rangeTitle: "Data Export Settings", startDate: "Start Date", endDate: "End Date", btnExportRange: "Download Range CSV", rangeAlert: "Please select start and end dates"
+                navTitle: "Smart Farm Automation v8.2", exportBtn: "Export", setupTitle: "Connection Setup", saveBtn: "Save Settings", monitorTitle: "Live Environment", updated: "Updated:", temp: "Temp", hum: "Humidity", soil: "Soil Moisture", status: "Status", statusDry: "Very Dry", statusWet: "Wet", statusOk: "Good", controlTitle: "System Status", pump: "Water Pump", fert: "Fertilizer", sensorHealth: "Sensor Health", chartTitle: "Trend Analysis", waiting: "System Ready", cmdSending: "Sending...", cmdSent: "Command Sent", cmdFail: "Failed", errorSens: "Sensor Error", normal: "Normal", alertLock: "ALERT: Pump timeout! System locked.", alertSens: "ALERT: Sensor failure detected!", exportError: "No data", fillAlert: "Please fill in Channel ID", tbAlert: "Please fill in TalkBack ID and Key", tabDash: "Dashboard", tabLog: "System Logs", dataLimitLabel: "Max Records (10-8000)", mode: "Operation Mode", btnAuto: "Auto", btnMan: "Manual", modeAuto: "Auto", modeMan: "Manual", btnStop: "EMERGENCY STOP", stopSent: "STOP command sent!", timeoutMsg: "Warning: Device Offline (>5min no data)", statusTimeout: "⚠️ Data Stale", overload: "OVERLOAD TRIP", alertOverloadPump: "ALERT: Water Pump Overload Trip!", alertOverloadFert: "ALERT: Fertilizer Overload Trip!", rangeTitle: "Data Export Settings", startDate: "Start Date", endDate: "End Date", btnExportRange: "Download Range CSV", rangeAlert: "Please select start and end dates"
             }
         };
 
@@ -626,8 +679,10 @@
             ['channelId','readKey','tbId','tbKey'].forEach(id => { if(localStorage.getItem('conf_'+id)) document.getElementById(id).value = localStorage.getItem('conf_'+id); });
             const savedLimit = localStorage.getItem('conf_dataLimit'); if(savedLimit) { currentLimit = parseInt(savedLimit); document.getElementById('dataLimit').value = currentLimit; }
             updateDynamicText();
+            startVersionCheck(); // 啟動版本檢查
             if(localStorage.getItem('conf_channelId')) { setConnStatus("connecting"); startLoop(); } else document.getElementById('setupPanel').classList.remove('hidden');
         };
     </script>
 </body>
 </html>
+
