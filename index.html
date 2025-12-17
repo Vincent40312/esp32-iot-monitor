@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32 智慧農場中控台 v8.0</title>
+    <title>ESP32 智慧農場中控台 v8.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -16,6 +16,7 @@
         }
         .animate-pulse-red { animation: pulse-red 2s infinite; }
         input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        .data-stale { border-color: #ef4444 !important; background-color: rgba(127, 29, 29, 0.2) !important; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-200 font-sans min-h-screen flex flex-col">
@@ -25,7 +26,7 @@
         <div class="container mx-auto flex justify-between items-center">
             <div class="flex items-center">
                 <i class="fa-solid fa-leaf text-green-500 mr-3 text-xl"></i>
-                <h1 class="text-lg md:text-xl font-bold text-white hidden md:block tracking-wide" data-i18n="navTitle">Smart Farm v8.0</h1>
+                <h1 class="text-lg md:text-xl font-bold text-white hidden md:block tracking-wide" data-i18n="navTitle">Smart Farm v8.1</h1>
                 <div id="connStatus" class="ml-4 px-2 py-1 text-xs rounded bg-slate-700 text-slate-400 flex items-center transition-all duration-300">
                     <div class="w-2 h-2 rounded-full bg-slate-500 mr-2" id="connDot"></div>
                     <span id="connText">待機</span>
@@ -81,9 +82,12 @@
                 <div class="lg:col-span-2 flex flex-col gap-6">
                     
                     <!-- 1. 數據區 -->
-                    <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+                    <div id="monitorCard" class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg transition-colors duration-500">
                         <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-2">
-                            <h3 class="text-slate-400 text-sm uppercase font-bold tracking-wider" data-i18n="monitorTitle">環境監測</h3>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-slate-400 text-sm uppercase font-bold tracking-wider" data-i18n="monitorTitle">環境監測</h3>
+                                <span id="staleBadge" class="hidden px-2 py-0.5 bg-red-600 text-white text-[10px] rounded font-bold uppercase animate-pulse">Offline / Stale Data</span>
+                            </div>
                             <span class="text-xs text-slate-500 font-mono"><span data-i18n="updated">更新:</span> <span id="lastUpdate" class="text-white">--</span></span>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -249,12 +253,12 @@
         </div>
     </main>
 
-    <footer class="text-center p-4 text-slate-600 text-xs border-t border-slate-800 mt-4">ESP32 Smart Farm v8.0 &copy; 2025 本系統由唐貫瀚獨立製作 | <a href="https://github.com/Vincent40312/esp32-iot-monitor/tree/main" target="_blank" class="text-slate-500 hover:text-green-500 transition"><i class="fa-brands fa-github mr-1"></i>GitHub</a>
+    <footer class="text-center p-4 text-slate-600 text-xs border-t border-slate-800 mt-4">ESP32 Smart Farm v8.1 &copy; 2025 本系統由唐貫瀚獨立製作 | <a href="https://github.com/Vincent40312/esp32-iot-monitor/tree/main" target="_blank" class="text-slate-500 hover:text-green-500 transition"><i class="fa-brands fa-github mr-1"></i>GitHub</a>
     </footer>
 
     <script>
         let intervalId, myChart, currentFeeds = [], curLang = 'zh', statusTimeout, currentLimit = 50;
-        let lastDataTime = Date.now();
+        let lastDataTime = 0; // 改為紀錄實際資料時間，而非抓取時間
 
         function log(msg, type='info') {
             const box = document.getElementById('debugLog'); if(!box) return;
@@ -265,38 +269,22 @@
 
         const i18n = {
             zh: {
-                navTitle: "智慧農場自動化系統 v8.0", exportBtn: "匯出", setupTitle: "連線設定", saveBtn: "儲存設定", monitorTitle: "環境即時監測", updated: "最後更新:", temp: "溫度", hum: "濕度", soil: "土壤濕度", status: "狀態", statusDry: "嚴重缺水", statusWet: "過濕", statusOk: "適中", controlTitle: "自動化運作狀態", pump: "水泵 (自動補水)", fert: "施肥機 (定時)", sensorHealth: "感測器健康度", chartTitle: "歷史趨勢", waiting: "系統待命中", cmdSending: "指令發送中...", cmdSent: "指令已發送", cmdFail: "發送失敗", errorSens: "感測器異常", normal: "正常", alertLock: "警報：水泵運轉超時，系統已強制鎖定！", alertSens: "警報：感測器讀取失敗，自動化已暫停！", exportError: "無數據可匯出", fillAlert: "請完整填寫 Channel ID", tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key", tabDash: "儀表板", tabLog: "系統日誌", dataLimitLabel: "讀取/匯出筆數 (10-8000)", mode: "運作模式", btnAuto: "自動", btnMan: "手動", modeAuto: "自動 (Auto)", modeMan: "手動 (Manual)", btnStop: "緊急停機 STOP", stopSent: "緊急停機指令已送出！", timeoutMsg: "系統端連線異常：超過 5 分鐘未收到數據", statusTimeout: "連線異常",
-                overload: "過載跳脫 (Trip)", alertOverloadPump: "警報：水泵積熱電驛跳脫 (Overload)！", alertOverloadFert: "警報：施肥機積熱電驛跳脫 (Overload)！", rangeTitle: "資料匯出設定", startDate: "開始時間", endDate: "結束時間", btnExportRange: "下載區間報表", rangeAlert: "請選擇開始與結束時間"
+                navTitle: "智慧農場自動化系統 v8.1", exportBtn: "匯出", setupTitle: "連線設定", saveBtn: "儲存設定", monitorTitle: "環境即時監測", updated: "最後更新:", temp: "溫度", hum: "濕度", soil: "土壤濕度", status: "狀態", statusDry: "嚴重缺水", statusWet: "過濕", statusOk: "適中", controlTitle: "自動化運作狀態", pump: "水泵 (自動補水)", fert: "施肥機 (定時)", sensorHealth: "感測器健康度", chartTitle: "歷史趨勢", waiting: "系統待命中", cmdSending: "指令發送中...", cmdSent: "指令已發送", cmdFail: "發送失敗", errorSens: "感測器異常", normal: "正常", alertLock: "警報：水泵運轉超時，系統已強制鎖定！", alertSens: "警報：感測器讀取失敗，自動化已暫停！", exportError: "無數據可匯出", fillAlert: "請完整填寫 Channel ID", tbAlert: "請先在設定中填寫 TalkBack ID 和 API Key", tabDash: "儀表板", tabLog: "系統日誌", dataLimitLabel: "讀取/匯出筆數 (10-8000)", mode: "運作模式", btnAuto: "自動", btnMan: "手動", modeAuto: "自動 (Auto)", modeMan: "手動 (Manual)", btnStop: "緊急停機 STOP", stopSent: "緊急停機指令已送出！", timeoutMsg: "警告：設備可能離線 (超過5分鐘無更新)", statusTimeout: "⚠️ 資料過期", overload: "過載跳脫 (Trip)", alertOverloadPump: "警報：水泵積熱電驛跳脫 (Overload)！", alertOverloadFert: "警報：施肥機積熱電驛跳脫 (Overload)！", rangeTitle: "資料匯出設定", startDate: "開始時間", endDate: "結束時間", btnExportRange: "下載區間報表", rangeAlert: "請選擇開始與結束時間"
             },
             en: {
-                navTitle: "Smart Farm Automation v8.0", exportBtn: "Export", setupTitle: "Connection Setup", saveBtn: "Save Settings", monitorTitle: "Live Environment", updated: "Updated:", temp: "Temp", hum: "Humidity", soil: "Soil Moisture", status: "Status", statusDry: "Very Dry", statusWet: "Wet", statusOk: "Good", controlTitle: "System Status", pump: "Water Pump", fert: "Fertilizer", sensorHealth: "Sensor Health", chartTitle: "Trend Analysis", waiting: "System Ready", cmdSending: "Sending...", cmdSent: "Command Sent", cmdFail: "Failed", errorSens: "Sensor Error", normal: "Normal", alertLock: "ALERT: Pump timeout! System locked.", alertSens: "ALERT: Sensor failure detected!", exportError: "No data", fillAlert: "Please fill in Channel ID", tbAlert: "Please fill in TalkBack ID and Key", tabDash: "Dashboard", tabLog: "System Logs", dataLimitLabel: "Max Records (10-8000)", mode: "Operation Mode", btnAuto: "Auto", btnMan: "Manual", modeAuto: "Auto", modeMan: "Manual", btnStop: "EMERGENCY STOP", stopSent: "STOP command sent!", timeoutMsg: "Connection Timeout: No data for 5 mins!", statusTimeout: "Conn Error", overload: "OVERLOAD TRIP", alertOverloadPump: "ALERT: Water Pump Overload Trip!", alertOverloadFert: "ALERT: Fertilizer Overload Trip!", rangeTitle: "Data Export Settings", startDate: "Start Date", endDate: "End Date", btnExportRange: "Download Range CSV", rangeAlert: "Please select start and end dates"
+                navTitle: "Smart Farm Automation v8.1", exportBtn: "Export", setupTitle: "Connection Setup", saveBtn: "Save Settings", monitorTitle: "Live Environment", updated: "Updated:", temp: "Temp", hum: "Humidity", soil: "Soil Moisture", status: "Status", statusDry: "Very Dry", statusWet: "Wet", statusOk: "Good", controlTitle: "System Status", pump: "Water Pump", fert: "Fertilizer", sensorHealth: "Sensor Health", chartTitle: "Trend Analysis", waiting: "System Ready", cmdSending: "Sending...", cmdSent: "Command Sent", cmdFail: "Failed", errorSens: "Sensor Error", normal: "Normal", alertLock: "ALERT: Pump timeout! System locked.", alertSens: "ALERT: Sensor failure detected!", exportError: "No data", fillAlert: "Please fill in Channel ID", tbAlert: "Please fill in TalkBack ID and Key", tabDash: "Dashboard", tabLog: "System Logs", dataLimitLabel: "Max Records (10-8000)", mode: "Operation Mode", btnAuto: "Auto", btnMan: "Manual", modeAuto: "Auto", modeMan: "Manual", btnStop: "EMERGENCY STOP", stopSent: "STOP command sent!", timeoutMsg: "Warning: Device Offline (>5min no data)", statusTimeout: "⚠️ Data Stale", overload: "OVERLOAD TRIP", alertOverloadPump: "ALERT: Water Pump Overload Trip!", alertOverloadFert: "ALERT: Fertilizer Overload Trip!", rangeTitle: "Data Export Settings", startDate: "Start Date", endDate: "End Date", btnExportRange: "Download Range CSV", rangeAlert: "Please select start and end dates"
             }
         };
 
         setInterval(() => document.getElementById('digitalClock').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false }), 1000);
-
-        setInterval(() => {
-            if (Date.now() - lastDataTime > 300000) {
-                const connText = document.getElementById('connText');
-                if (connText.innerText !== i18n[curLang].statusTimeout) {
-                    connText.innerText = i18n[curLang].statusTimeout;
-                    connText.className = "text-red-400 font-bold";
-                    document.getElementById('connDot').className = "w-2 h-2 rounded-full bg-red-500 animate-pulse";
-                    addAlert("timeoutErr", i18n[curLang].timeoutMsg);
-                    log("逾時警告：未收到數據", "error");
-                }
-            }
-        }, 1000);
 
         function toggleLanguage() { curLang = curLang === 'zh' ? 'en' : 'zh'; document.getElementById('langBtnText').innerText = curLang === 'zh' ? 'EN' : '中'; updateInterfaceText(); }
         function updateInterfaceText() {
             document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (i18n[curLang][key]) el.innerText = i18n[curLang][key]; });
             if(myChart) { myChart.data.datasets[0].label = i18n[curLang].temp; myChart.data.datasets[1].label = i18n[curLang].hum; myChart.data.datasets[2].label = i18n[curLang].soil; myChart.update(); }
             updateDynamicText();
-            if (Date.now() - lastDataTime > 300000) {
-                document.getElementById('connText').innerText = i18n[curLang].statusTimeout;
-                const alertEl = document.getElementById('timeoutErr'); if(alertEl) alertEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> ${i18n[curLang].timeoutMsg}`;
-            }
+            // 重新檢查一次狀態以更新語言
+            if (lastDataTime > 0) checkDataFreshness(lastDataTime);
             if(currentFeeds.length > 0) updateUI(currentFeeds[currentFeeds.length-1]);
         }
         function updateDynamicText() {
@@ -343,16 +331,53 @@
 
         function setConnStatus(status) {
             const dot = document.getElementById('connDot'); const txt = document.getElementById('connText');
-            if(status === 'success') { dot.className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_#22c55e]"; txt.innerText = "已連線"; txt.className = "text-green-400 font-bold"; } 
-            else if(status === 'error') { dot.className = "w-2 h-2 rounded-full bg-red-500 shadow-[0_0_5px_#ef4444]"; txt.innerText = "連線失敗"; txt.className = "text-red-400 font-bold"; } 
-            else { dot.className = "w-2 h-2 rounded-full bg-yellow-500 animate-pulse"; txt.innerText = "連線中..."; txt.className = "text-yellow-400"; }
+            if(status === 'success') { 
+                dot.className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_#22c55e]"; 
+                txt.innerText = "已連線"; 
+                txt.className = "text-green-400 font-bold"; 
+            } 
+            else if(status === 'error') { 
+                dot.className = "w-2 h-2 rounded-full bg-red-500 shadow-[0_0_5px_#ef4444]"; 
+                txt.innerText = "連線失敗"; 
+                txt.className = "text-red-400 font-bold"; 
+            } 
+            else if(status === 'timeout') { 
+                dot.className = "w-2 h-2 rounded-full bg-red-500 animate-pulse"; 
+                txt.innerText = i18n[curLang].statusTimeout; 
+                txt.className = "text-red-400 font-bold"; 
+            }
+            else { 
+                dot.className = "w-2 h-2 rounded-full bg-yellow-500 animate-pulse"; 
+                txt.innerText = "連線中..."; 
+                txt.className = "text-yellow-400"; 
+            }
+        }
+
+        function checkDataFreshness(dataTimestamp) {
+            const now = Date.now();
+            const diff = now - dataTimestamp;
+            const card = document.getElementById('monitorCard');
+            const badge = document.getElementById('staleBadge');
+
+            if (diff > 300000) { // 300,000ms = 5 minutes
+                setConnStatus("timeout");
+                addAlert("timeoutErr", i18n[curLang].timeoutMsg);
+                card.classList.add("data-stale"); // 紅色背景警告
+                badge.classList.remove("hidden");
+                // 這裡不使用 log 避免洗版
+            } else {
+                setConnStatus("success");
+                removeAlert("timeoutErr");
+                card.classList.remove("data-stale");
+                badge.classList.add("hidden");
+            }
         }
 
         async function fetchSensorData() {
             const cid = localStorage.getItem('conf_channelId'); const rkey = localStorage.getItem('conf_readKey');
             if(!cid) { log("未設定 Channel ID", "warn"); return; }
             try {
-                log(`讀取數據 (${currentLimit}筆)...`, "info");
+                // log(`讀取數據 (${currentLimit}筆)...`, "info");
                 let url = `https://api.thingspeak.com/channels/${cid}/feeds.json?results=${currentLimit}`;
                 if(rkey) url += `&api_key=${rkey}`;
                 const res = await fetch(url);
@@ -360,21 +385,29 @@
                 const data = await res.json();
                 const feeds = data.feeds;
                 currentFeeds = feeds;
-                lastDataTime = Date.now();
-                setConnStatus("success");
-                removeAlert("timeoutErr");
                 
-                log(`成功讀取 ${feeds.length} 筆`, "success");
                 if(feeds.length > 0) {
                     const last = feeds[feeds.length-1];
+                    lastDataTime = new Date(last.created_at).getTime(); // 記錄資料產生的時間，而非現在時間
+                    
+                    // [檢查資料時效性]
+                    checkDataFreshness(lastDataTime);
+                    
                     updateUI(last);
                     myChart.data.labels = feeds.map(f => new Date(f.created_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}));
                     myChart.data.datasets[0].data = feeds.map(f => f.field1);
                     myChart.data.datasets[1].data = feeds.map(f => f.field2);
                     myChart.data.datasets[2].data = feeds.map(f => f.field3);
                     myChart.update();
-                } else { log("無數據", "warn"); }
-            } catch(e) { console.error(e); log(`讀取失敗: ${e.message}`, "error"); setConnStatus("error"); }
+                } else { 
+                    log("無數據", "warn"); 
+                    lastDataTime = 0; // Reset
+                }
+            } catch(e) { 
+                console.error(e); 
+                log(`讀取失敗: ${e.message}`, "error"); 
+                setConnStatus("error"); 
+            }
         }
 
         function updateUI(d) {
@@ -382,7 +415,10 @@
             document.getElementById('tempVal').innerText = isNaN(t) ? "--" : t.toFixed(1);
             document.getElementById('humVal').innerText = isNaN(h) ? "--" : h.toFixed(1);
             document.getElementById('soilVal').innerText = isNaN(s) ? "--" : s.toFixed(0);
-            document.getElementById('lastUpdate').innerText = new Date(d.created_at).toLocaleTimeString();
+            
+            // 強制顯示台北時間
+            document.getElementById('lastUpdate').innerText = new Date(d.created_at).toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
+            
             updateCard('temp', t, 30, 'high'); updateCard('soil', s, 20, 'low');
             
             const elSoil = document.getElementById('soilStatus');
@@ -595,4 +631,3 @@
     </script>
 </body>
 </html>
-
