@@ -9,8 +9,8 @@
 #include "soc/rtc_cntl_reg.h"
 
 // ==========================================
-//  ESP32 智慧農場 v10.4 (MQTT 雙向控制版)
-//  功能：上傳數據 (Publish) + 接收指令 (Subscribe)
+//  ESP32 智慧農場 v10.4 (MQTT + Discord 版)
+//  功能：上傳數據 + 接收指令 + Discord 警報通知
 // ==========================================
 
 const char* ssid = "EVDS";
@@ -21,6 +21,10 @@ const char* mqtt_server = "192.168.0.119"; // 請修改為樹梅派 IP
 const int mqtt_port = 1883;                // ESP32 走 TCP Port 1883
 const char* mqtt_user = "admin";                // 若有設帳密請填入
 const char* mqtt_password = "12345678"; 
+
+// --- [設定] Discord Webhook ---
+// 請在 Discord 頻道設定 -> 整合 -> Webhooks 建立並複製網址
+const char* discord_webhook = "https://discord.com/api/webhooks/1451100483338108989/xUJ9AdGTDRGTWvwPzPL8Qt8PPCGyar4XkBGNZ9Px39xBxNA2R39VCY--FJiuE322QmAA";
 
 // MQTT Topics
 const char* topic_data = "farm/monitor";    // 發送：數據
@@ -62,10 +66,44 @@ unsigned long fertStartTime = 0;
 bool fertRunning = false;
 bool fertJobDoneToday = false;
 
+// --- 狀態追蹤 (防止 Discord 洗版用) ---
+bool lastPumpOverloadState = false;
+bool lastFertOverloadState = false;
+bool lastSensorErrorState = false;
+
 unsigned long lastUploadTime = 0;
 const long uploadInterval = 60000; // ThingSpeak 備份上傳
 unsigned long lastMqttTime = 0;
 const long mqttInterval = 1000;    // MQTT 每秒上傳
+
+// ==========================================
+//  [核心] Discord 發送函式 (HTTPS)
+// ==========================================
+void sendDiscord(String content) {
+  if (WiFi.status() == WL_CONNECTED) {
+    WiFiClientSecure secureClient;
+    secureClient.setInsecure(); // 忽略 SSL 憑證驗證 (必要，否則 ESP32 連不上 Discord)
+    
+    HTTPClient https;
+    if (https.begin(secureClient, discord_webhook)) {
+      https.addHeader("Content-Type", "application/json");
+      
+      // 構建 JSON payload
+      String payload = "{\"content\":\"" + content + "\"}";
+      
+      int httpResponseCode = https.POST(payload);
+      if (httpResponseCode > 0) {
+        Serial.println("Discord 發送成功: " + content);
+      } else {
+        Serial.print("Discord 發送失敗, Error code: ");
+        Serial.println(httpResponseCode);
+      }
+      https.end();
+    } else {
+      Serial.println("無法連接 Discord 伺服器");
+    }
+  }
+}
 
 // ==========================================
 //  [核心] MQTT 接收訊息回調函式 (Callback)
@@ -88,14 +126,17 @@ void callback(char* topic, byte* payload, unsigned int length) {
       digitalWrite(pumpPin, LOW); pumpRunning = false;
       digitalWrite(fertPin, LOW); fertRunning = false;
       Serial.println("執行：緊急停機");
+      sendDiscord("🔴 [警報] 收到遠端 STOP 指令，系統已緊急停機！");
   }
   else if (msg == "AUTO_ON") {
       autoMode = true;
       Serial.println("執行：切換為自動模式");
+      sendDiscord("🟢 系統已切換為：自動模式 (Auto)");
   }
   else if (msg == "AUTO_OFF") {
       autoMode = false;
       Serial.println("執行：切換為手動模式");
+      sendDiscord("🟠 系統已切換為：手動模式 (Manual)");
   }
   else if (msg == "LED1_ON") { // 開水泵
       if (!pumpOverload) {
@@ -104,6 +145,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
           Serial.println("執行：水泵開啟");
       } else {
           Serial.println("拒絕：水泵過載中");
+          sendDiscord("⚠️ [拒絕] 嘗試開啟水泵失敗：過載保護中");
       }
   }
   else if (msg == "LED1_OFF") { // 關水泵
@@ -117,6 +159,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
           Serial.println("執行：施肥開啟");
       } else {
           Serial.println("拒絕：施肥過載中");
+          sendDiscord("⚠️ [拒絕] 嘗試開啟施肥失敗：過載保護中");
       }
   }
   else if (msg == "LED2_OFF") { // 關施肥
@@ -170,6 +213,8 @@ void setup() {
   // 設定 MQTT Server 與 Callback
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback); // 註冊接收函式
+
+  sendDiscord("✅ ESP32 智慧農場系統已啟動連線");
 }
 
 void loop() {
@@ -196,9 +241,37 @@ void loop() {
     soilPercent = constrain(soilPercent, 0, 100);
     bool sensorError = (isnan(hum) || isnan(temp) || soilRaw == 0);
 
+    // [Fix] 防止 JSON 解析錯誤: 若數值為 NaN，強制設為 0
+    // 這很重要，因為 "nan" 字串在 JSON 中是不合法的，會導致網頁端 JSON.parse() 失敗
+    if (isnan(hum)) hum = 0;
+    if (isnan(temp)) temp = 0;
+
+    // --- Discord 警報邏輯 (狀態邊緣檢測，避免洗版) ---
+    // 1. 感測器故障檢測
+    if (sensorError && !lastSensorErrorState) {
+        sendDiscord("⚠️ [故障] 溫濕度或土壤感測器讀取異常，請檢查線路！");
+    }
+    lastSensorErrorState = sensorError;
+
     // --- 過載保護 ---
     bool pumpOverload = (digitalRead(olPumpPin) == LOW);
     bool fertOverload = (digitalRead(olFertPin) == LOW);
+    
+    // 2. 水泵過載檢測
+    if (pumpOverload && !lastPumpOverloadState) {
+        digitalWrite(pumpPin, LOW); pumpRunning = false;
+        sendDiscord("🚨 [嚴重警報] 水泵積熱電驛跳脫 (Pump Overload)！系統已強制停機。");
+    }
+    lastPumpOverloadState = pumpOverload;
+
+    // 3. 施肥過載檢測
+    if (fertOverload && !lastFertOverloadState) {
+        digitalWrite(fertPin, LOW); fertRunning = false;
+        sendDiscord("🚨 [嚴重警報] 施肥機積熱電驛跳脫 (Fert Overload)！系統已強制停機。");
+    }
+    lastFertOverloadState = fertOverload;
+
+    // 確保狀態同步 (如果手動復歸，也要關閉馬達以防誤動作)
     if (pumpOverload && pumpRunning) { digitalWrite(pumpPin, LOW); pumpRunning = false; }
     if (fertOverload && fertRunning) { digitalWrite(fertPin, LOW); fertRunning = false; }
 
@@ -209,9 +282,11 @@ void loop() {
           if (timeinfo.tm_hour == fertHour && timeinfo.tm_min == 0 && !fertRunning && !fertJobDoneToday) {
             if (pumpRunning) { digitalWrite(pumpPin, LOW); pumpRunning = false; } 
             digitalWrite(fertPin, HIGH); fertRunning = true; fertStartTime = currentMillis; fertJobDoneToday = true;
+            sendDiscord("💧 [自動排程] 開始執行施肥作業");
           }
           if (fertRunning && (currentMillis - fertStartTime) >= (fertDuration * 60 * 1000)) {
                digitalWrite(fertPin, LOW); fertRunning = false;
+               sendDiscord("✅ [自動排程] 施肥作業完成");
           }
           if (timeinfo.tm_hour == 0 && timeinfo.tm_min == 0) fertJobDoneToday = false;
         }
@@ -227,8 +302,11 @@ void loop() {
             digitalWrite(pumpPin, LOW); pumpRunning = false;
         }
     } 
+    
+    // 4. 超時鎖定警報
     if (pumpRunning && ((currentMillis - pumpStartTime) / 60000 >= pumpMaxRunTime)) {
         digitalWrite(pumpPin, LOW); pumpRunning = false; pumpSoftAlarm = true;
+        sendDiscord("⚠️ [超時警報] 水泵運轉超過限制時間 (10分鐘)，已強制鎖定。請檢查管線是否破裂或土壤感測器失效。");
     }
 
     int status = 0;
@@ -253,8 +331,9 @@ void loop() {
     }
 
     // --- ThingSpeak 備份上傳 (每分鐘) ---
-    if (currentMillis - lastThingSpeakTime >= thingSpeakInterval) {
-      lastThingSpeakTime = currentMillis;
+    // 修正: 統一使用 lastUploadTime 變數
+    if (currentMillis - lastUploadTime >= uploadInterval) {
+      lastUploadTime = currentMillis;
       String url = "http://api.thingspeak.com/update?api_key=" + writeApiKey + 
                    "&field1=" + String(temp) + "&field2=" + String(hum) + 
                    "&field3=" + String(soilPercent) + "&field4=" + String(status); 
