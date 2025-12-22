@@ -282,8 +282,23 @@
                     plugins: { legend: { labels: { color: '#94a3b8' } } },
                     scales: { 
                         x: { ticks: { color: '#64748b', maxTicksLimit: 6 }, grid: { display: false } }, 
-                        y: { type: 'linear', display: true, position: 'left', ticks: { color: '#f87171' }, grid: { color: '#334155' } },
-                        y1: { type: 'linear', display: true, position: 'right', ticks: { color: '#e2e8f0' }, grid: { drawOnChartArea: false } }
+                        y: { 
+                            type: 'linear', 
+                            display: true, 
+                            position: 'left', 
+                            ticks: { color: '#f87171', stepSize: 0.1 }, 
+                            grid: { color: '#334155' },
+                            grace: 0.5
+                        },
+                        y1: { 
+                            type: 'linear', 
+                            display: true, 
+                            position: 'right', 
+                            ticks: { color: '#e2e8f0' }, 
+                            grid: { drawOnChartArea: false },
+                            suggestedMin: 0,
+                            suggestedMax: 100
+                        }
                     }
                 }
             });
