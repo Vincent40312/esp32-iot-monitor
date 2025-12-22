@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32 智慧農場 (ThingSpeak Cloud)</title>
+    <title>ESP32 智慧農場 (ThingSpeak Cloud v10.2)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -24,19 +24,28 @@
         <div class="container mx-auto flex justify-between items-center">
             <div class="flex items-center">
                 <i class="fa-solid fa-cloud text-blue-400 mr-3 text-xl"></i>
-                <h1 class="text-lg md:text-xl font-bold text-white hidden md:block tracking-wide">Smart Farm (ThingSpeak)</h1>
+                <h1 class="text-lg md:text-xl font-bold text-white hidden md:block tracking-wide">Smart Farm (TS v10.2)</h1>
                 <div class="ml-4 px-2 py-1 text-xs rounded bg-slate-700 text-slate-400 flex items-center transition-all duration-300">
                     <div class="w-2 h-2 rounded-full bg-slate-500 mr-2" id="connDot"></div>
                     <span id="connText">待機</span>
                 </div>
             </div>
-            <div class="flex items-center gap-2 bg-slate-900 px-4 py-1.5 rounded-full border border-slate-700 shadow-inner">
-                <i class="fa-regular fa-clock text-slate-400 text-sm"></i>
-                <span id="nextUpdateTimer" class="font-mono text-blue-400 font-bold tracking-widest text-lg">--</span>
+
+            <!-- [New] Real-time Clock Display -->
+            <div class="hidden md:flex flex-col items-center justify-center mx-4">
+                <div id="realTimeClock" class="text-white font-mono font-bold text-lg tracking-wider">00:00:00</div>
+                <div id="realTimeDate" class="text-xs text-slate-400">YYYY-MM-DD</div>
             </div>
-            <button onclick="toggleSettings()" class="text-slate-400 hover:text-white p-2 transition hover:rotate-90 duration-300">
-                <i class="fa-solid fa-gear text-lg"></i>
-            </button>
+
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 bg-slate-900 px-4 py-1.5 rounded-full border border-slate-700 shadow-inner">
+                    <i class="fa-solid fa-rotate text-slate-400 text-xs"></i>
+                    <span id="nextUpdateTimer" class="font-mono text-blue-400 font-bold tracking-widest text-lg">--</span>
+                </div>
+                <button onclick="toggleSettings()" class="text-slate-400 hover:text-white p-2 transition hover:rotate-90 duration-300">
+                    <i class="fa-solid fa-gear text-lg"></i>
+                </button>
+            </div>
         </div>
     </nav>
 
@@ -49,7 +58,17 @@
                 <div class="p-3 bg-slate-900/50 rounded border border-slate-700">
                     <h4 class="text-xs font-bold text-slate-400 uppercase mb-2">讀取設定 (監控用)</h4>
                     <div class="mb-2"><label class="block text-xs text-slate-500 mb-1">Channel ID</label><input type="text" id="tsChannel" class="w-full bg-slate-800 border border-slate-600 rounded p-2 focus:border-blue-500 outline-none text-white text-sm" placeholder="例如: 123456"></div>
-                    <div><label class="block text-xs text-slate-500 mb-1">Read API Key (可選)</label><input type="password" id="tsReadKey" class="w-full bg-slate-800 border border-slate-600 rounded p-2 focus:border-blue-500 outline-none text-white text-sm" placeholder="公開頻道可留空"></div>
+                    <div class="mb-2"><label class="block text-xs text-slate-500 mb-1">Read API Key (可選)</label><input type="password" id="tsReadKey" class="w-full bg-slate-800 border border-slate-600 rounded p-2 focus:border-blue-500 outline-none text-white text-sm" placeholder="公開頻道可留空"></div>
+                    <!-- [New] Results Count Selection -->
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">歷史趨勢讀取筆數</label>
+                        <select id="tsResults" class="w-full bg-slate-800 border border-slate-600 rounded p-2 focus:border-blue-500 outline-none text-white text-sm">
+                            <option value="10">最近 10 筆</option>
+                            <option value="20" selected>最近 20 筆 (預設)</option>
+                            <option value="50">最近 50 筆</option>
+                            <option value="100">最近 100 筆 (載入較慢)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="p-3 bg-slate-900/50 rounded border border-slate-700">
@@ -78,7 +97,7 @@
                         
                         <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-2 relative z-10">
                             <div class="flex items-center gap-2"><h3 class="text-slate-400 text-sm uppercase font-bold tracking-wider">雲端環境監測</h3><span id="liveBadge" class="px-2 py-0.5 bg-blue-600 text-white text-[10px] rounded font-bold uppercase animate-pulse">Live</span></div>
-                            <span class="text-xs text-slate-500 font-mono">Last: <span id="lastUpdateTime" class="text-blue-300">--:--:--</span></span>
+                            <span class="text-xs text-slate-500 font-mono">Last Data: <span id="lastUpdateTime" class="text-blue-300">--:--:--</span></span>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
@@ -106,7 +125,7 @@
 
                     <!-- Chart -->
                     <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 h-80 relative shadow-lg">
-                        <h3 class="text-slate-400 text-sm uppercase font-bold mb-2 absolute top-4 left-6">歷史趨勢 (Last 20 Feeds)</h3>
+                        <h3 class="text-slate-400 text-sm uppercase font-bold mb-2 absolute top-4 left-6">歷史趨勢 (Last <span id="chartCountDisplay">20</span> Feeds)</h3>
                         <div class="w-full h-full pb-2 pt-6"><canvas id="historyChart"></canvas></div>
                     </div>
                 </div>
@@ -210,6 +229,7 @@
     <script>
         let timer = null;
         let countdownTimer = null;
+        let clockTimer = null; // [New]
         let chart;
         const UPDATE_INTERVAL = 15; // ThingSpeak Free Limit: 15s
 
@@ -226,6 +246,7 @@
         function saveAndStart() {
             const ch = document.getElementById('tsChannel').value;
             const rk = document.getElementById('tsReadKey').value;
+            const results = document.getElementById('tsResults').value; // [New]
             const tid = document.getElementById('tbId').value;
             const tkey = document.getElementById('tbKey').value;
 
@@ -233,8 +254,12 @@
 
             localStorage.setItem('ts_channel', ch);
             localStorage.setItem('ts_read_key', rk);
+            localStorage.setItem('ts_results', results); // [New]
             localStorage.setItem('ts_tb_id', tid);
             localStorage.setItem('ts_tb_key', tkey);
+
+            // Update UI display text
+            document.getElementById('chartCountDisplay').innerText = results;
 
             toggleSettings();
             startPolling();
@@ -256,7 +281,7 @@
                     responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
                     plugins: { legend: { labels: { color: '#94a3b8' } } },
                     scales: { 
-                        x: { ticks: { color: '#64748b', maxTicksLimit: 5 }, grid: { display: false } }, 
+                        x: { ticks: { color: '#64748b', maxTicksLimit: 6 }, grid: { display: false } }, 
                         y: { type: 'linear', display: true, position: 'left', ticks: { color: '#f87171' }, grid: { color: '#334155' } },
                         y1: { type: 'linear', display: true, position: 'right', ticks: { color: '#e2e8f0' }, grid: { drawOnChartArea: false } }
                     }
@@ -283,10 +308,11 @@
         async function fetchData() {
             const ch = localStorage.getItem('ts_channel');
             const rk = localStorage.getItem('ts_read_key');
+            const results = localStorage.getItem('ts_results') || 20; // [New] Get count from storage
             if(!ch) return;
 
-            // Fetch last 20 feeds for chart
-            const url = `https://api.thingspeak.com/channels/${ch}/feeds.json?api_key=${rk}&results=20`;
+            // Fetch feeds with dynamic results count
+            const url = `https://api.thingspeak.com/channels/${ch}/feeds.json?api_key=${rk}&results=${results}`;
 
             updateConnStatus("Fetching...", "text-yellow-400", true);
 
@@ -328,7 +354,7 @@
             else if (s > 80) { elSoil.innerText = "過濕"; elSoil.className = "text-cyan-400 font-bold"; }
             else { elSoil.innerText = "適中"; elSoil.className = "text-green-400 font-bold"; }
 
-            // Last Update Time
+            // Last Update Time (from data)
             const date = new Date(lastFeed.created_at);
             document.getElementById('lastUpdateTime').innerText = date.toLocaleTimeString();
 
@@ -458,7 +484,20 @@
             document.getElementById('connDot').className = `w-2 h-2 rounded-full ${isOk ? 'bg-green-500 shadow-[0_0_5px_#22c55e]' : 'bg-red-500'}`;
         }
 
+        // [New] Clock Function
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-GB', { hour12: false }); // 24H format
+            const dateStr = now.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
+            document.getElementById('realTimeClock').innerText = timeStr;
+            document.getElementById('realTimeDate').innerText = dateStr;
+        }
+
         window.onload = function() {
+            // Start real-time clock
+            updateClock();
+            clockTimer = setInterval(updateClock, 1000);
+
             // Set default dates for export inputs (Today)
             const now = new Date();
             const year = now.getFullYear();
@@ -475,6 +514,12 @@
                 document.getElementById('tsReadKey').value = localStorage.getItem('ts_read_key') || '';
                 document.getElementById('tbId').value = localStorage.getItem('ts_tb_id') || '';
                 document.getElementById('tbKey').value = localStorage.getItem('ts_tb_key') || '';
+                
+                // [New] Load Results Count
+                const savedResults = localStorage.getItem('ts_results') || '20';
+                document.getElementById('tsResults').value = savedResults;
+                document.getElementById('chartCountDisplay').innerText = savedResults;
+
                 initChart();
                 startPolling();
             } else {
