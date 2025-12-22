@@ -17,10 +17,10 @@ const char* ssid = "EVDS";
 const char* password = "EVDS0501";
 
 // --- [設定] MQTT 伺服器 (樹梅派) ---
-const char* mqtt_server = "192.168.1.100"; // 請修改為樹梅派 IP
+const char* mqtt_server = "192.168.0.119"; // 請修改為樹梅派 IP
 const int mqtt_port = 1883;                // ESP32 走 TCP Port 1883
-const char* mqtt_user = "";                // 若有設帳密請填入
-const char* mqtt_password = ""; 
+const char* mqtt_user = "admin";                // 若有設帳密請填入
+const char* mqtt_password = "12345678"; 
 
 // MQTT Topics
 const char* topic_data = "farm/monitor";    // 發送：數據
