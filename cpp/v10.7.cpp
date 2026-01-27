@@ -24,14 +24,14 @@ const char* mqtt_user = "admin";
 const char* mqtt_password = "12345678"; 
 
 // --- [設定] Discord Webhook ---
-const char* discord_webhook = "https://discord.com/api/webhooks/1451100483338108989/xUJ9AdGTDRGTWvwPzPL8Qt8PPCGyar4XkBGNZ9Px39xBxNA2R39VCY--FJiuE322QmAA";
+const char* discord_webhook = "https://discord.com/api/webhooks/";
 
 // MQTT Topics
 const char* topic_data = "farm/monitor";    
 const char* topic_control = "farm/control"; 
 
 // 其他設定
-String writeApiKey = "EEOBAMUB5SO5P42G"; 
+String writeApiKey = "----------"; 
 const int pumpPin = 17;    
 const int fertPin = 5;    
 const int soilPin = 34;   
