@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 智慧農場 (RS485 v11.0 - Command Fix)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        @keyframes pulse-red { 0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } }
+        .animate-pulse-red { animation: pulse-red 2s infinite; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-200 font-sans min-h-screen flex flex-col">
+
+    <nav class="bg-slate-800 p-3 md:p-4 border-b border-slate-700 sticky top-0 z-50 shadow-lg">
+        <div class="w-full px-4 lg:px-8 flex flex-wrap justify-between items-center gap-y-2">
+            <div class="flex items-center">
+                <i class="fa-solid fa-leaf text-green-500 mr-2 md:mr-3 text-xl"></i>
+                <h1 class="text-base md:text-xl font-bold text-white">Smart Farm <span class="text-xs text-slate-500 font-normal">v11.0</span></h1>
+                <div class="ml-3 px-2 py-1 text-[10px] md:text-xs rounded bg-slate-700 flex items-center">
+                    <div class="w-1.5 h-1.5 rounded-full bg-slate-500 mr-2" id="connDot"></div>
+                    <span id="connText">待機</span>
+                </div>
+            </div>
+            <div class="flex flex-col items-end md:items-center order-3 md:order-2">
+                <div id="digitalClock" class="font-mono text-green-400 font-bold text-base">--:--:--</div>
+                <div id="digitalDate" class="text-[10px] text-slate-500 font-mono">YYYY-MM-DD</div>
+            </div>
+            <button onclick="toggleSettings()" class="text-slate-400 hover:text-white p-2 order-2 md:order-3"><i class="fa-solid fa-gear text-lg"></i></button>
+        </div>
+    </nav>
+
+    <div id="setupPanel" class="fixed inset-0 bg-black/80 z-[60] hidden flex justify-center items-start pt-20 p-4 backdrop-blur-sm">
+        <div class="bg-slate-800 p-6 rounded-lg w-full max-w-md border border-green-500/50 shadow-2xl">
+            <h3 class="font-bold mb-4 text-green-300 text-lg">MQTT 連線設定</h3>
+            <div class="space-y-4">
+                <div><label class="block text-xs text-slate-400 mb-1">Host (Broker IP)</label><input type="text" id="mqttHost" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white outline-none" value="192.168.0.119"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">協定 (Protocol)</label>
+                        <select id="mqttProto" onchange="autoSetPort()" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm">
+                            <option value="ws">ws://</option>
+                            <option value="wss">wss://</option>
+                        </select>
+                    </div>
+                    <div><label class="block text-xs text-slate-400 mb-1">Port</label><input type="number" id="mqttPort" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white" value="1884"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs text-slate-400 mb-1">帳號 (User)</label><input type="text" id="mqttUser" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white" value="admin"></div>
+                    <div><label class="block text-xs text-slate-400 mb-1">密碼 (Pass)</label><input type="password" id="mqttPass" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white" value="12345678"></div>
+                </div>
+            </div>
+            <div class="mt-6 flex gap-3">
+                <button onclick="saveAndConnect()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded">儲存並連線</button>
+                <button onclick="toggleSettings()" class="bg-slate-700 px-4 py-2 rounded">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="container mx-auto p-4 flex-grow">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div class="lg:col-span-2 flex flex-col gap-6">
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+                    <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-2">
+                        <h3 class="text-slate-400 text-sm font-bold uppercase tracking-wider">RS485 多要素監測</h3>
+                        <span class="text-xs text-slate-500 font-mono">更新: <span id="lastUpdate" class="text-white">--</span></span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div class="bg-slate-900/50 p-4 rounded-lg text-center border border-slate-700/50">
+                            <i class="fa-solid fa-cloud-sun text-red-400 mb-1"></i>
+                            <div class="text-2xl font-bold text-white" id="valTemp">--</div>
+                            <div class="text-[10px] text-slate-500 font-bold uppercase">空氣溫度 °C</div>
+                        </div>
+                        <div class="bg-slate-900/50 p-4 rounded-lg text-center border border-slate-700/50">
+                            <i class="fa-solid fa-droplet text-cyan-400 mb-1"></i>
+                            <div class="text-2xl font-bold text-white" id="valHum">--</div>
+                            <div class="text-[10px] text-slate-500 font-bold uppercase">空氣濕度 %</div>
+                        </div>
+                        <div class="bg-slate-900/50 p-4 rounded-lg text-center border border-slate-700/50">
+                            <i class="fa-solid fa-seedling text-green-400 mb-1"></i>
+                            <div class="text-2xl font-bold text-white" id="valSoilHum">--</div>
+                            <div class="text-[10px] text-slate-500 font-bold uppercase">土壤水分 %</div>
+                        </div>
+                        <div class="bg-slate-900/50 p-4 rounded-lg text-center border border-slate-700/50">
+                            <i class="fa-solid fa-temperature-low text-orange-400 mb-1"></i>
+                            <div class="text-2xl font-bold text-white" id="valSoilTemp">--</div>
+                            <div class="text-[10px] text-slate-500 font-bold uppercase">土壤溫度 °C</div>
+                        </div>
+                        <div class="bg-slate-900/50 p-4 rounded-lg text-center border border-slate-700/50">
+                            <i class="fa-solid fa-bolt text-yellow-400 mb-1"></i>
+                            <div class="text-2xl font-bold text-white" id="valSoilEC">--</div>
+                            <div class="text-[10px] text-slate-500 font-bold uppercase">電導率 us/cm</div>
+                        </div>
+                        <div class="bg-slate-900/50 p-4 rounded-lg text-center border border-slate-700/50">
+                            <i class="fa-solid fa-flask-vial text-purple-400 mb-1"></i>
+                            <div class="text-2xl font-bold text-white" id="valSoilSal">--</div>
+                            <div class="text-[10px] text-slate-500 font-bold uppercase">鹽分 mg/L</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 h-64">
+                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                        <h4 class="text-xs font-bold text-red-400 mb-2 text-center">空氣溫度趨勢</h4>
+                        <div class="h-44"><canvas id="chartTemp"></canvas></div>
+                    </div>
+                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                        <h4 class="text-xs font-bold text-green-400 mb-2 text-center">土壤水分趨勢</h4>
+                        <div class="h-44"><canvas id="chartSoil"></canvas></div>
+                    </div>
+                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                        <h4 class="text-xs font-bold text-yellow-400 mb-2 text-center">電導率趨勢</h4>
+                        <div class="h-44"><canvas id="chartEC"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-1">
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg h-full flex flex-col">
+                    <h3 class="text-slate-400 text-sm font-bold mb-6 border-b border-slate-700 pb-2">系統指令控制</h3>
+                    <div class="space-y-4 flex-grow">
+                        <button onclick="publishCmd('STOP')" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition active:scale-95 border border-red-500">
+                            <i class="fa-solid fa-power-off text-xl"></i><span class="text-lg">緊急停機 STOP</span>
+                        </button>
+                        
+                        <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div id="modeInd" class="w-3 h-3 rounded-full bg-slate-600"></div>
+                                    <div class="flex flex-col"><span class="text-xs font-bold text-purple-200">模式設定</span><span id="modeText" class="text-[10px] text-slate-500">--</span></div>
+                                </div>
+                                <div class="flex gap-1">
+                                    <button onclick="publishCmd('AUTO_ON')" class="bg-green-600 px-2 py-1.5 rounded text-[10px] font-bold">Auto</button>
+                                    <button onclick="publishCmd('AUTO_OFF')" class="bg-slate-600 px-2 py-1.5 rounded text-[10px] font-bold">Manual</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div id="pumpInd" class="w-3 h-3 rounded-full bg-slate-600"></div>
+                                    <div class="flex flex-col"><span class="text-xs font-bold text-blue-200">水泵 (Pump)</span><span id="pumpStatusText" class="text-[10px] text-slate-500">待機</span></div>
+                                </div>
+                                <div class="flex gap-1">
+                                    <button onclick="publishCmd('LED1_ON')" class="bg-blue-600 px-3 py-1.5 rounded text-[10px] font-bold">ON</button>
+                                    <button onclick="publishCmd('LED1_OFF')" class="bg-slate-600 px-3 py-1.5 rounded text-[10px] font-bold">OFF</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900/80 p-4 rounded-lg border border-slate-700">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div id="fertInd" class="w-3 h-3 rounded-full bg-slate-600"></div>
+                                    <div class="flex flex-col"><span class="text-xs font-bold text-yellow-200">施肥 (Fert)</span><span id="fertStatusText" class="text-[10px] text-slate-500">待機</span></div>
+                                </div>
+                                <div class="flex gap-1">
+                                    <button onclick="publishCmd('LED2_ON')" class="bg-yellow-600 px-3 py-1.5 rounded text-[10px] font-bold">ON</button>
+                                    <button onclick="publishCmd('LED2_OFF')" class="bg-slate-600 px-3 py-1.5 rounded text-[10px] font-bold">OFF</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="cmdStatus" class="text-[10px] text-center text-slate-500 mt-4 h-4 font-mono">MQTT Status: Ready</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-black p-4 rounded-lg border border-slate-700 font-mono text-[10px] h-32 overflow-y-scroll shadow-inner">
+            <div class="text-green-400 font-bold mb-2 border-b border-green-900/50 flex justify-between"><span>>>> SYSTEM LOG</span><button onclick="document.getElementById('debugLog').innerHTML=''" class="hover:text-white">Clear</button></div>
+            <div id="debugLog" class="text-slate-300 space-y-1"></div>
+        </div>
+    </main>
+
+    <script>
+        let client = null, charts = {};
+        const topicSub = "farm/monitor";
+        const topicPub = "farm/control";
+
+        function log(msg, type='info') {
+            const box = document.getElementById('debugLog');
+            const time = new Date().toLocaleTimeString();
+            let color = type === 'error' ? "text-red-400" : (type === 'success' ? "text-green-400" : "text-slate-300");
+            box.innerHTML += `<div class="${color}">[${time}] ${msg}</div>`;
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function toggleSettings() { document.getElementById('setupPanel').classList.toggle('hidden'); }
+        function autoSetPort() {
+            const proto = document.getElementById('mqttProto').value;
+            document.getElementById('mqttPort').value = (proto === 'wss') ? 443 : 1884;
+        }
+
+        function createChart(id, color) {
+            const ctx = document.getElementById(id).getContext('2d');
+            return new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [{ borderColor: color, data: [], tension: 0.3, pointRadius: 1, fill: true, backgroundColor: color + '11' }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { 
+                        x: { display: true, ticks: { color: '#64748b', font: { size: 8 }, maxTicksLimit: 4 }, grid: { display: false } }, 
+                        y: { 
+                            display: true, 
+                            ticks: { color: '#94a3b8', font: { size: 8 } },
+                            grid: { color: '#1e293b' },
+                            // 優化：確保空氣溫度趨勢上限-下限絕對大於 5
+                            afterDataLimits: (scale) => {
+                                const range = scale.max - scale.min;
+                                if (range < 5) {
+                                    const center = (scale.max + scale.min) / 2;
+                                    scale.min = center - 2.51;
+                                    scale.max = center + 2.51;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function initCharts() {
+            charts.temp = createChart('chartTemp', '#f87171');
+            charts.soil = createChart('chartSoil', '#4ade80');
+            charts.ec = createChart('chartEC', '#eab308');
+        }
+
+        function connectMQTT() {
+            const host = localStorage.getItem('pi_host') || "192.168.0.119";
+            const port = parseInt(localStorage.getItem('pi_port')) || 1884;
+            const user = localStorage.getItem('pi_user') || "admin";
+            const pass = localStorage.getItem('pi_pass') || "12345678";
+            const proto = localStorage.getItem('pi_proto') || "ws";
+            
+            // 使用更具標識性的 ClientId
+            const clientId = "SmartFarm_Web_" + Math.floor(Math.random() * 10000);
+            
+            try {
+                if (client) client.disconnect();
+                client = new Paho.MQTT.Client(host, Number(port), "/mqtt", clientId);
+                client.onMessageArrived = onMessageArrived;
+                client.onConnectionLost = (e) => { 
+                    log("MQTT 斷線: " + e.errorMessage, "error"); 
+                    document.getElementById('connText').innerText = "斷線";
+                    document.getElementById('connDot').className = "w-2 h-2 rounded-full bg-red-600";
+                    setTimeout(connectMQTT, 5000); 
+                };
+                
+                const options = {
+                    onSuccess: () => { 
+                        log("MQTT 連線成功", "success"); 
+                        client.subscribe(topicSub); 
+                        document.getElementById('connText').innerText = "已連線"; 
+                        document.getElementById('connDot').className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_#22c55e]"; 
+                    },
+                    onFailure: (e) => log("連線失敗: " + e.errorMessage, "error"),
+                    useSSL: (proto === 'wss'), 
+                    userName: user, 
+                    password: pass,
+                    timeout: 5
+                };
+                client.connect(options);
+            } catch (e) { log("連線異常: " + e.message, "error"); }
+        }
+
+        function onMessageArrived(msg) {
+            try {
+                const data = JSON.parse(msg.payloadString);
+                document.getElementById('lastUpdate').innerText = new Date().toLocaleTimeString();
+                
+                // 更新數據 (與 ESP32 鍵值對齊)
+                document.getElementById('valTemp').innerText = data.temp?.toFixed(1) || "--";
+                document.getElementById('valHum').innerText = data.hum?.toFixed(1) || "--";
+                document.getElementById('valSoilHum').innerText = data.soil_hum?.toFixed(1) || "--";
+                document.getElementById('valSoilTemp').innerText = data.soil_temp?.toFixed(1) || "--";
+                document.getElementById('valSoilEC').innerText = data.ec || "--";
+                document.getElementById('valSoilSal').innerText = data.salinity || "--";
+
+                updateUIStatus(data.status || 0);
+
+                const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                updateChart(charts.temp, time, data.temp);
+                updateChart(charts.soil, time, data.soil_hum);
+                updateChart(charts.ec, time, data.ec);
+            } catch(e) { console.error("Parse error", e); }
+        }
+
+        function updateChart(chart, label, val) {
+            if (chart.data.labels.length > 20) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
+            chart.data.labels.push(label);
+            chart.data.datasets[0].data.push(val);
+            chart.update('none');
+        }
+
+        function updateUIStatus(status) {
+            // 位元解析與您的 ESP32 邏輯對應
+            const isPump = status & 1, isFert = status & 2, isAuto = status & 16, isOlP = status & 32, isOlF = status & 64;
+            
+            document.getElementById('modeInd').className = isAuto ? "w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]" : "w-3 h-3 rounded-full bg-orange-500";
+            document.getElementById('modeText').innerText = isAuto ? "自動運作" : "手動控制";
+            
+            const pInd = document.getElementById('pumpInd'), pTxt = document.getElementById('pumpStatusText');
+            if (isOlP) { pInd.className = "w-3 h-3 rounded-full bg-red-600 animate-pulse"; pTxt.innerText = "過載跳脫"; }
+            else if (isPump) { pInd.className = "w-3 h-3 rounded-full bg-blue-500 animate-pulse"; pTxt.innerText = "運轉中"; }
+            else { pInd.className = "w-3 h-3 rounded-full bg-slate-600"; pTxt.innerText = "待機"; }
+
+            const fInd = document.getElementById('fertInd'), fTxt = document.getElementById('fertStatusText');
+            if (isOlF) { fInd.className = "w-3 h-3 rounded-full bg-red-600 animate-pulse"; fTxt.innerText = "過載跳脫"; }
+            else if (isFert) { fInd.className = "w-3 h-3 rounded-full bg-yellow-500 animate-pulse"; fTxt.innerText = "運轉中"; }
+            else { fInd.className = "w-3 h-3 rounded-full bg-slate-600"; fTxt.innerText = "待機"; }
+        }
+
+        // ✅ 系統控制傳輸修正：確保 QoS 為 1 且 Topic 正確
+        function publishCmd(cmd) {
+            if(!client || !client.isConnected()) {
+                log("發送失敗: MQTT 未連線", "error");
+                return;
+            }
+            try {
+                const message = new Paho.MQTT.Message(cmd);
+                message.destinationName = topicPub;
+                message.qos = 1; // 確保傳遞
+                client.send(message);
+                log(`已送出指令: ${cmd}`, "success");
+                document.getElementById('cmdStatus').innerText = `LAST CMD: ${cmd}`;
+                setTimeout(() => document.getElementById('cmdStatus').innerText = "MQTT Status: Ready", 3000);
+            } catch (e) {
+                log("發送錯誤: " + e.message, "error");
+            }
+        }
+
+        function saveAndConnect() {
+            localStorage.setItem('pi_host', document.getElementById('mqttHost').value);
+            localStorage.setItem('pi_port', document.getElementById('mqttPort').value);
+            localStorage.setItem('pi_user', document.getElementById('mqttUser').value);
+            localStorage.setItem('pi_pass', document.getElementById('mqttPass').value);
+            localStorage.setItem('pi_proto', document.getElementById('mqttProto').value);
+            toggleSettings(); 
+            connectMQTT();
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('digitalClock').innerText = now.toLocaleTimeString('en-GB', { hour12: false });
+            document.getElementById('digitalDate').innerText = now.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        }
+
+        window.onload = () => {
+            updateClock(); setInterval(updateClock, 1000);
+            initCharts();
+            if(localStorage.getItem('pi_host')) {
+                document.getElementById('mqttHost').value = localStorage.getItem('pi_host');
+                document.getElementById('mqttPort').value = localStorage.getItem('pi_port');
+                document.getElementById('mqttProto').value = localStorage.getItem('pi_proto');
+                document.getElementById('mqttUser').value = localStorage.getItem('pi_user');
+                document.getElementById('mqttPass').value = localStorage.getItem('pi_pass');
+            }
+            connectMQTT();
+        };
+
+        function downloadSelf() {
+            const blob = new Blob([document.documentElement.outerHTML], { type: "text/html" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob); a.download = "SmartFarm_Pro.html"; a.click();
+        }
+    </script>
+</body>
+</html>
